@@ -1,0 +1,90 @@
+<!-- src/main/resources/templates/review/list.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+
+<head>
+<meta charset="UTF-8">
+<title>리뷰 목록</title>
+<style>
+body { font-family: 'Apple SD Gothic Neo', '맑은 고딕', Arial, sans-serif; background:#fafbfc;}
+.container { max-width:850px; margin:45px auto; background:#fff; border-radius:10px; box-shadow:0 4px 22px #ececec; padding:40px;}
+h2 { color: #38499a; }
+.review-table { width:100%; border-collapse:collapse; margin-top:18px; }
+.review-table th, .review-table td { border:1px solid #ececf2; padding:13px 8px; text-align:center;}
+.review-table th { background:#f6f7fb; color:#345;}
+.review-table td.content { text-align:left; }
+.star-yellow { color: #FFD700; font-size: 1.20em; letter-spacing:-1.5px;}
+.star-gray { color: #eee; font-size: 1.20em; letter-spacing:-1.5px;}
+.btn { background:#f7f8fb; color:#38499a; border:1px solid #c2c7f6; border-radius:4px; padding:7px 20px; text-decoration:none; margin-right:6px;}
+.btn:hover { background:#e7f1ff; color:#222; }
+/* 페이징 스타일 */
+.paging { text-align:center; margin:22px 0 0 0; }
+.paging a, .paging b {
+    display:inline-block; min-width:32px; padding:7px 0;
+    border-radius:7px; margin:0 2px; font-size:1.09em;
+    color:#38499a; background:#f7f7fc; text-decoration:none; font-weight:600;
+}
+.paging a:hover { background:#dbe8fa; color:#1849a8;}
+.paging b { background:#38499a; color:#fff;}
+</style>
+</head>
+<body>
+<div class="container" layout:fragment="content">
+	<h2>리뷰 목록</h2>
+	
+	<a class="btn" th:if="${lectureId != null}" th:href="@{/review/lecture/{lectureId}/review(lectureId=${lectureId})}">목록</a>
+	<a class="btn" th:if="${lectureId == null}" th:href="@{/review/list}">목록</a>
+	
+	<a class="btn" th:if="${lectureId != null}" th:href="@{/review/form(lectureId=${lectureId})}">+ 리뷰 작성</a>
+	<a class="btn" th:if="${lectureId == null}" th:href="@{/review/form}">+ 리뷰 작성</a>
+	<table class="review-table">
+		<thead>
+			<tr>
+				<th>번호</th>
+				<th>강의명</th>
+				<th>작성자</th>
+				<th>평점</th>
+				<th>내용</th>
+				<th>작성일</th>
+				<th>관리</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr th:each="review, iter : ${reviewPage.content}">
+				<td th:text="${reviewPage.totalElements - (reviewPage.number * reviewPage.size + iter.index)}">1</td>
+				<td th:text="${review.lectureTitle}">강의명</td>
+				<td th:text="${review.memberName}">작성자</td>
+				<td>
+					<span th:each="i : ${#numbers.sequence(1, 5)}"
+							th:classappend="${review != null and review.rating != null and i <= review.rating} ? 'star-yellow' : 'star-gray'">&#9733;</span>
+				</td>
+				<td class="content" th:text="${review.comment}">내용</td>
+				<td th:text="${@dateFormatUtils.format(review.regDate, 'yyyy-MM-dd HH:mm')}"></td>
+				<td>
+					<a class="btn" th:href="@{/review/detail/{id}(id=${review.reviewId})}">상세</a>
+					<a class="btn" th:href="@{/review/edit/{id}(id=${review.reviewId})}">수정</a>
+					<a class="btn" th:href="@{/review/delete/{id}(id=${review.reviewId}, lectureId=${review.lectureId})}"
+							onclick="return confirm('삭제하시겠습니까?');">삭제</a>
+					<a class="btn" th:href="@{/review/lecture/{lectureId}/review(lectureId=${review.lectureId})}">목록</a>
+				</td>
+			</tr>
+			<tr th:if="${reviewPage.content.size() == 0}">
+				<td colspan="7">등록된 리뷰가 없습니다.</td>
+			</tr>
+        </tbody>
+	</table>
+
+    <!-- 페이징 바 -->
+    <div class="paging" th:if="${reviewPage.totalPages > 1}">
+        <a th:if="${reviewPage.hasPrevious()}" th:href="@{/review/list(page=${reviewPage.number},size=${reviewPage.size})}">&laquo;</a>
+        <span th:each="i : ${#numbers.sequence(1, reviewPage.totalPages)}">
+            <a th:if="${i != reviewPage.number+1}" th:href="@{/review/list(page=${i},size=${reviewPage.size})}" th:text="${i}"></a>
+            <b th:if="${i == reviewPage.number+1}" th:text="${i}"></b>
+        </span>
+        <a th:if="${reviewPage.hasNext()}" th:href="@{/review/list(page=${reviewPage.number+2},size=${reviewPage.size})}">&raquo;</a>
+    </div>
+</div>
+</body>
+</html>

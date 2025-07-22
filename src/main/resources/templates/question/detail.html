@@ -1,0 +1,55 @@
+<!-- src/main/resources/templates/question/detail.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <meta charset="UTF-8">
+    <title>질문 상세</title>
+    <style>
+        body { font-family:'Pretendard', Arial, sans-serif; background:#f7f8fc; }
+        .container { max-width:720px; margin:55px auto; background:#fff; border-radius:16px; box-shadow:0 7px 28px #e7e9f0; padding:40px 32px 32px;}
+        .q-title { font-size:1.5rem; font-weight:600; margin-bottom:10px; color:#273c75;}
+        .meta { color:#8b9fc7; font-size:0.98rem; margin-bottom:16px;}
+        .q-text { font-size:1.11rem; color:#333; margin-bottom:36px; white-space: pre-line;}
+        .btn { background:#3867d6; color:#fff; border:none; border-radius:7px; padding:7px 21px; font-size:1.06rem; font-weight:500; cursor:pointer; text-decoration:none;}
+        .btn:hover { background:#273c75;}
+        .answer-box { margin-top:28px; padding:22px 20px; border-radius:12px; background:#f6faff;}
+        .answer-title { font-size:1.13rem; font-weight:700; color:#267466; margin-bottom:10px;}
+        .answer-text { font-size:1.09rem; color:#222; margin-bottom:4px; white-space:pre-line;}
+        .answer-meta { font-size:0.97rem; color:#888;}
+        .no-answer { color:#aaa; font-size:1.08rem; font-weight:500; margin:20px 0;}
+    </style>
+</head>
+<body>
+<div class="container" layout:fragment="content">
+    <div class="q-title" th:text="${question.questionText}"></div>
+    <div class="meta">
+        강의: <span th:text="${question.lecture != null ? question.lecture.title : '-'}"></span> |
+        작성자: <span th:text="${question.member != null ? question.member.name : '익명'}"></span> |
+        작성일: <span th:text="${@dateFormatUtils.format(question.createdAt, 'yyyy-MM-dd HH:mm')}"></span>
+    </div>
+    <div class="q-text" th:text="${question.questionText}"></div>
+    <div style="margin-bottom:24px;">
+        <a th:href="@{/question/edit/{id}(id=${question.questionId})}" class="btn">질문 수정</a>
+        <a th:href="@{/question/delete/{id}(id=${question.questionId})}" class="btn" style="background:#e17055;" onclick="return confirm('질문을 삭제하시겠습니까?');">삭제</a>
+        <a th:href="@{/question/list}" class="btn" style="background:#b2bec3; color:#2d3436;">목록</a>
+    </div>
+    <!-- 답변 영역 -->
+    <div class="answer-box">
+        <div class="answer-title">답변</div>
+        <div th:if="${question.answerList == null || #lists.isEmpty(question.answerList)}" class="no-answer">아직 답변이 등록되지 않았습니다.</div>
+        <div th:each="ans : ${question.answerList}">
+            <div class="answer-text" th:text="${ans.answerText}"></div>
+            <div class="answer-meta">
+                답변자: <span th:text="${ans.member != null ? ans.member.name : '관리자'}"></span>
+                | 작성일: <span th:text="${@dateFormatUtils.format(ans.createdAt, 'yyyy-MM-dd HH:mm')}"></span>
+                <a class="btn" th:href="@{/answer/edit/{id}(id=${ans.answerId})}" style="margin-left:10px;">수정</a>
+                <a class="btn" th:href="@{/answer/delete/{id}(id=${ans.answerId})}" style="background:#e17055;" onclick="return confirm('답변을 삭제하시겠습니까?');">삭제</a>
+            </div>
+            <hr style="border:0; border-bottom:1px solid #e7e9f0; margin:12px 0;">
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!-- src/main/resources/templates/lecture/list.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <meta charset="UTF-8">
+    <title layout:title="강의 목록">강의 목록</title>
+    <style>
+        body { font-family: 'Apple SD Gothic Neo', '맑은 고딕', Arial, sans-serif; background:#f5f6fa; margin:0;}
+        .card-box { max-width:1050px; margin:42px auto; background:#fff; border-radius:14px; box-shadow:0 5px 32px #e2e4f3; padding:40px 44px;}
+        h2 { color: #2b3777; font-size:2.1rem; font-weight:700; letter-spacing:-1px; }
+        .lecture-table { width:100%; border-collapse:collapse; margin-top:22px;}
+        .lecture-table th, .lecture-table td { border:1px solid #e7eaf3; padding:14px 10px; text-align:center; }
+        .lecture-table th { background:#f5f7fc; color:#30446c; font-size:1.05rem;}
+        .lecture-table td.title { text-align:left; font-weight:500;}
+        .lecture-table a { color:#2376ef; text-decoration:none;}
+        .lecture-table a:hover { text-decoration:underline; color:#142f7a;}
+        .badge { padding:3px 14px; font-size:0.98rem; border-radius:16px; font-weight:600;}
+        .badge-open { background:#d9f9df; color:#13aa56;}
+        .badge-closed { background:#ffe4c3; color:#ff8000;}
+        .badge-other { background:#eee; color:#666;}
+        .btn { display:inline-block; background:#2978f0; color:#fff; border:none; border-radius:6px; padding:9px 28px; font-size:1rem; font-weight:600; margin:0 5px 18px 0; text-decoration:none;}
+        .btn:hover { background:#1a57be;}
+        @media (max-width:800px) {
+          .card-box {padding:18px 2vw;}
+          .lecture-table th, .lecture-table td {padding:8px 3px;}
+        }
+        tr:hover { background: #eaf2fd; }
+        .badge-fixed { background: #e74c3c; color: #fff; padding: 2px 10px; border-radius: 14px; font-size: 0.9rem; margin-right: 4px;}
+        .title-link { color: #222; text-decoration: none; font-weight: 500; }
+        .title-link:hover { text-decoration: underline; color: #3085ef; }
+        @media (max-width: 600px) {
+            .container { padding: 10px; }
+            th, td { font-size: 0.97rem; padding: 7px 3px;}
+        }
+        /* 페이징바 */
+        .paging { text-align:center; margin:24px 0 0 0; }
+        .paging a, .paging b {
+            display:inline-block; min-width:34px; padding:7px 0;
+            border-radius:7px; margin:0 2px; font-size:1.09em;
+            color:#2978f0; background:#f7f7fc; text-decoration:none; font-weight:600;
+        }
+        .paging a:hover { background:#dbe8fa; color:#1849a8;}
+        .paging b { background:#2978f0; color:#fff;}
+    </style>
+</head>
+<body>
+<section class="card-box" layout:fragment="content">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2>강의 목록</h2>
+		<a th:href="@{/lecture/form}" class="btn"
+		   sec:authorize="hasAnyRole('ADMIN', 'INSTRUCTOR')">+ 강의 등록</a>
+    </div>
+    <table class="lecture-table">
+        <thead>
+        <tr>
+            <th>번호</th>
+            <th>제목</th>
+            <th>강사</th>
+            <th>카테고리</th>
+            <th>가격</th>
+            <th>상태</th>
+			<!-- 관리 열(헤더) -->
+			<th sec:authorize="hasAnyRole('ADMIN')">관리</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="lecture, iterStat : ${lecturePage.content}">
+            <!-- 최신글 순 번호: 전체건수 - (페이지번호*사이즈 + index) -->
+            <td th:text="${lecturePage.totalElements - (lecturePage.number * lecturePage.size + iterStat.index)}">1</td>
+            <td class="title">
+				<a th:href="@{/lecture/detail/{lectureId}(lectureId=${lecture.lectureId})}" th:text="${lecture.title}">강의제목</a>
+<!--                 <a th:href="@{/lecture/detail/{id}(id=${lecture.lectureId})}" th:text="${lecture.title}">강의제목</a> -->
+            </td>
+            <td th:text="${lecture.instructor.name}">강사명</td>
+            <td th:text="${lecture.category}">카테고리</td>
+            <td>
+                <span th:if="${lecture.price == 0}">무료</span>
+                <span th:unless="${lecture.price == 0}" th:text="${lecture.price + '원'}"></span>
+            </td>
+            <td>
+                <span th:switch="${lectureStatusMap[lecture.lectureId]}">
+                    <span th:case="'OPEN'" class="badge badge-open">OPEN</span>
+                    <span th:case="'READY'" class="badge badge-other">READY</span>
+                    <span th:case="'CLOSED'" class="badge badge-closed">CLOSED</span>
+                    <span th:case="*" class="badge badge-other" th:text="${lectureStatusMap[lecture.lectureId]}"></span>
+                </span>
+            </td>
+			<!-- [!] '관리' 셀: ADMIN만 표시 -->
+			<td sec:authorize="hasRole('ADMIN')">
+				<!-- ADMIN: 항상 보임 -->
+				<span sec:authorize="hasRole('ADMIN')">
+					<a th:href="@{/lecture/form(id=${lecture.lectureId})}">수정</a>
+					<a th:href="@{/lecture/delete/{id}(id=${lecture.lectureId})}"
+						onclick="return confirm('정말 삭제하시겠습니까?');">삭제</a>
+				</span>
+				<!-- INSTRUCTOR: 본인 강의만 보임 -->
+				<span sec:authorize="hasRole('INSTRUCTOR')"
+					th:if="${#authentication.name == lecture.instructor.userId}">
+					<a th:href="@{/lecture/form(id=${lecture.lectureId})}">수정</a>
+					<a th:href="@{/lecture/delete/{id}(id=${lecture.lectureId})}"
+						onclick="return confirm('정말 삭제하시겠습니까?');">삭제</a>
+				</span>
+			</td>
+        </tr>
+        <tr th:if="${lecturePage.content.size() == 0}">
+            <td colspan="7">등록된 강의가 없습니다.</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- 페이징 바 -->
+    <div class="paging" th:if="${lecturePage.totalPages > 1}">
+        <a th:if="${lecturePage.hasPrevious()}" th:href="@{/lecture/list(page=${lecturePage.number},size=${lecturePage.size})}">&laquo;</a>
+        <span th:each="i : ${#numbers.sequence(1, lecturePage.totalPages)}">
+            <a th:if="${i != lecturePage.number+1}" th:href="@{/lecture/list(page=${i},size=${lecturePage.size})}" th:text="${i}"></a>
+            <b th:if="${i == lecturePage.number+1}" th:text="${i}"></b>
+        </span>
+        <a th:if="${lecturePage.hasNext()}" th:href="@{/lecture/list(page=${lecturePage.number+2},size=${lecturePage.size})}">&raquo;</a>
+    </div>
+</section>
+</body>
+</html>

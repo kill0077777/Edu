@@ -1,0 +1,69 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.4.7'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.edu'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	// Lombok
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+
+	// Web, JPA, MyBatis
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.4'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+	// DB Driver
+	runtimeOnly 'com.mysql:mysql-connector-j:8.3.0'
+	// runtimeOnly 'org.postgresql:postgresql' // 주석처리, 필요시만 사용
+
+	// Thymeleaf (View)
+	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+	implementation 'nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect:3.2.1'
+
+	// JSP/JSTL (선택, JSP 쓸 경우에만)
+	implementation 'org.apache.tomcat.embed:tomcat-embed-jasper'
+	implementation 'org.glassfish.web:jakarta.servlet.jsp.jstl:3.0.1'
+	compileOnly 'jakarta.servlet:jakarta.servlet-api:6.0.0'
+
+	// Validation, Security
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
+	implementation 'org.commonmark:commonmark:0.21.0'
+
+	// Test
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.junit.jupiter:junit-jupiter'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:3.0.4'
+}
+
+bootJar {
+	archiveFileName = 'lecture-app.jar'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}

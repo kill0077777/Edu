@@ -1,0 +1,58 @@
+<!-- src/main/resources/templates/notice/detail.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layout}">
+<head>
+    <title layout:title="공지사항 상세">공지사항 상세</title>
+    <style>
+        body { font-family: 'Pretendard', Arial, sans-serif; background: #f7f9fa; }
+        .container { max-width: 700px; margin: 44px auto; background: #fff; border-radius: 18px; box-shadow: 0 8px 28px rgba(0,0,0,0.10); padding: 40px 32px 24px; }
+        .title { font-size: 2rem; font-weight: 600; margin-bottom: 6px; color: #2d3548;}
+        .info { color: #888; font-size: 1rem; margin-bottom: 20px; }
+        .badge-fixed { background: #e74c3c; color: #fff; padding: 2px 9px; border-radius: 12px; margin-right: 4px; }
+        .content { font-size: 1.16rem; color: #222; margin-bottom: 32px; white-space: pre-line; }
+        .btn { background: #3085ef; color: #fff; border: none; padding: 7px 20px; border-radius: 8px; font-size: 1rem; cursor: pointer; margin-right: 8px; }
+        .btn:hover { background: #2068bf; }
+        form { display:inline; }
+    </style>
+</head>
+<body>
+<div class="container" layout:fragment="content">
+
+    <!-- notice 객체가 null이 아닐 때 본문 출력 -->
+    <div th:if="${notice != null}">
+        <div>
+            <span th:if="${notice.fixedFlag}" class="badge-fixed">상단공지</span>
+            <span class="title" th:text="${notice.title}">공지 제목</span>
+        </div>
+        <div class="info">
+            작성자: 
+            <span th:text="${notice.writerName != null ? notice.writerName : (notice.writer != null ? notice.writer.name : '알수없음')}"></span>
+            · 작성일: <span th:text="${#temporals.format(notice.regDate, 'yyyy-MM-dd HH:mm')}"></span>
+            · 조회수: <span th:text="${notice.hit}"></span>
+        </div>
+        <div class="content" th:text="${notice.content}">공지내용</div>
+        
+        <!-- 수정/삭제: ADMIN, INSTRUCTOR만 노출 -->
+        <a th:href="@{/notice/form(id=${notice.noticeId})}" class="btn"
+           sec:authorize="hasAnyRole('ADMIN','INSTRUCTOR')">수정</a>
+        <form th:action="@{/notice/delete/{id}(id=${notice.noticeId})}" method="post"
+              sec:authorize="hasAnyRole('ADMIN','INSTRUCTOR')"
+              th:onsubmit="return confirm('정말 삭제하시겠습니까?');">
+            <button type="submit" class="btn" style="background:#e74c3c;">삭제</button>
+        </form>
+        <a th:href="@{/notice/list}" class="btn" style="background:#b2bec3;">목록</a>
+    </div>
+    
+    <!-- 없는 공지일 때 안내 -->
+    <div th:if="${notice == null}">
+        <div style="color:#e74c3c; font-size:1.1rem; margin:24px 0;">
+            <span th:text="${msg != null ? msg : '해당 공지사항이 존재하지 않습니다.'}"></span>
+        </div>
+        <a th:href="@{/notice/list}" class="btn" style="background:#b2bec3;">공지사항 목록으로</a>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!-- src/main/resources/templates/fragments/navbar.html -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary" th:fragment="navbarFragment">
+	<div class="container-fluid">
+		<a class="navbar-brand" th:href="@{/}">EduClass</a>
+		<button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+				data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+				aria-expanded="false" aria-label="Toggle navigation">
+			<span class="navbar-toggler-icon"></span>
+		</button>
+
+		<div class="collapse navbar-collapse" id="navbarSupportedContent">
+			<ul class="navbar-nav me-auto mb-2 mb-lg-0">
+				<li class="nav-item">
+					<a class="nav-link mx-2 text-white" th:href="@{/notice/list}">공지사항</a>
+				</li>
+				<li class="nav-item">
+					<a class="nav-link mx-2 text-white" th:href="@{/lecture/list}">강의목록</a>
+				</li>
+				<!-- 리뷰: 전체 리뷰, 내가 쓴 리뷰, 강의별 리뷰 등 확장 가능 -->
+				<li class="nav-item dropdown">
+					<a 	class="nav-link dropdown-toggle mx-2 text-white" href="#" id="reviewDropdown" role="button"
+						data-bs-toggle="dropdown" aria-expanded="false">리뷰</a>
+					<ul class="dropdown-menu" aria-labelledby="reviewDropdown">
+						<li><a class="dropdown-item" th:href="@{/review/list}">전체 리뷰</a></li>
+ 						<!-- 로그인 시 "내 리뷰" 노출 -->
+						<li th:if="${#authorization.expression('isAuthenticated()')}">
+							<a class="dropdown-item" th:href="@{/review/my}">내가 쓴 리뷰</a>
+						</li>
+						<!-- 강의별 리뷰는 예시, 필요시 추가 -->
+						<!-- <li><a class="dropdown-item" th:href="@{/lecture/list}">강의별 리뷰</a></li> -->
+					</ul>
+				</li>
+				<li class="nav-item">
+					<a class="nav-link mx-2 text-white" th:href="@{/question/list}">Q&A</a>
+				</li>
+			</ul>
+
+			<ul class="navbar-nav mb-2 mb-lg-0">
+ 				<!-- 비로그인(Anonymous) -->
+				<li class="nav-item" sec:authorize="isAnonymous()">
+					<a class="nav-link" th:href="@{/member/login}">로그인</a>
+				</li>
+				<li class="nav-item" sec:authorize="isAnonymous()">
+					<a class="nav-link" th:href="@{/member/signup}">회원가입</a>
+                </li>
+				<!-- 로그인(Authenticated) -->
+                <li class="nav-item dropdown" sec:authorize="isAuthenticated()">
+ 					<a 	class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+						data-bs-toggle="dropdown" aria-expanded="false">
+                        <span style="color:#ffe082;" sec:authentication="principal.member.name"></span> 님 환영합니다
+					</a>
+					<!-- 로그아웃은 POST로! -->
+							<form th:action="@{/member/logout}" method="post" style="margin:0;">
+								<button type="submit" class="dropdown-item">로그아웃</button>
+							</form>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+						<!-- 추가로 마이페이지/내정보 메뉴 등 확장 가능 -->
+						<!-- <li><a class="dropdown-item" th:href="@{/member/profile}">내 정보</a></li> -->
+						<li>
+							<!-- 로그아웃은 POST로! -->
+							<form th:action="@{/member/logout}" method="post" style="margin:0;">
+								<button type="submit" class="dropdown-item">로그아웃</button>
+							</form>
+						</li>
+					</ul>
+				</li>
+			</ul>
+		</div>
+	</div>
+</nav>

@@ -1,0 +1,54 @@
+<!-- src/main/resources/templates/member/form.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>회원 등록/수정</title>
+    <style>
+        body { font-family: 'Pretendard', Arial, sans-serif; background: #f6f8fa;}
+        .container { max-width: 450px; margin: 58px auto; background: #fff; border-radius: 15px; box-shadow: 0 8px 36px rgba(0,0,0,0.09); padding: 38px 27px;}
+        h2 { font-size: 2rem; font-weight: 700; color: #28b5b5; margin-bottom: 28px;}
+        label { display:block; font-weight:600; margin-top:16px; margin-bottom:7px; color:#223;}
+        input, select { width:100%; padding:9px; border-radius:7px; border:1px solid #dfe6ec; font-size:1.1rem; }
+        .btn { background: #28b5b5; color: #fff; border: none; padding: 9px 25px; border-radius: 8px; font-size: 1.1rem; cursor: pointer; margin-right: 10px;}
+        .btn:hover { background: #146262; }
+        .form-row { margin-bottom:14px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2 th:text="${member.memberId} == null ? '회원 등록' : '회원 수정'"></h2>
+    <form th:action="@{/member/save}" th:object="${member}" method="post">
+        <input type="hidden" th:field="*{memberId}" />
+        <div class="form-row">
+            <label>아이디</label>
+            <input type="text" th:field="*{userId}" required maxlength="50" autocomplete="off"/>
+        </div>
+        <div class="form-row">
+            <label>비밀번호</label>
+            <!-- ★ 이 줄만 수정! -->
+            <input type="password" th:field="*{password}" th:placeholder="'비밀번호 입력(수정시만 변경)'" maxlength="100"/>
+        </div>
+        <div class="form-row">
+            <label>이름</label>
+            <input type="text" th:field="*{name}" required maxlength="50"/>
+        </div>
+        <div class="form-row">
+            <label>이메일</label>
+            <input type="email" th:field="*{email}" required maxlength="100"/>
+        </div>
+        <div class="form-row" sec:authorize="hasRole('ADMIN')">
+            <label>권한</label>
+            <select th:field="*{role}">
+                <option value="ADMIN">관리자</option>
+                <option value="INSTRUCTOR">강사</option>
+                <option value="STUDENT">수강생</option>
+            </select>
+        </div>
+        <div class="form-row">
+            <button type="submit" class="btn">저장</button>
+            <a th:href="@{/member/list}" class="btn" style="background:#b2bec3;">목록</a>
+        </div>
+    </form>
+</div>
+</body>
+</html>

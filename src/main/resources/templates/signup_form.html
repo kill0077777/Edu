@@ -1,0 +1,44 @@
+<!-- templates/include/signup_form.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>회원가입</title>
+</head>
+<body>
+<div layout:fragment="content" class="container my-4" style="max-width:440px;">
+    <h2 class="mb-4">회원가입</h2>
+    <form th:action="@{/member/signup}" th:object="${memberFormDto}" method="post" autocomplete="off">
+        <div class="mb-3">
+            <label class="form-label">사용자ID</label>
+            <input type="text" th:field="*{userId}" class="form-control" maxlength="50" required/>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">비밀번호</label>
+            <input type="password" th:field="*{password}" class="form-control" maxlength="100" required/>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">이름</label>
+            <input type="text" th:field="*{name}" class="form-control" maxlength="50" required/>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">이메일</label>
+            <input type="email" th:field="*{email}" class="form-control" maxlength="100" required/>
+        </div>
+        <!--
+        <div class="mb-3">
+            <label class="form-label">권한</label>
+            <select th:field="*{role}" class="form-select" required>
+                <option value="" disabled>-- 선택 --</option>
+                <option value="ADMIN">관리자</option>
+                <option value="INSTRUCTOR">강사</option>
+                <option value="STUDENT">수강생</option>
+            </select>
+        </div>
+        -->
+        <button type="submit" class="btn btn-primary w-100">회원가입</button>
+    </form>
+</div>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!-- src/main/resources/templates/answer/detail.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+<meta charset="UTF-8">
+<title>답변 상세</title>
+<style>
+body { font-family: 'Apple SD Gothic Neo', '맑은 고딕', Arial, sans-serif; background:#fafbfc;}
+.container { max-width:560px; margin:60px auto; background:#fff; border-radius:10px; box-shadow:0 4px 20px #e8e8ee; padding:38px;}
+h2 { color: #38499a; }
+.meta { color:#777; font-size:15px; margin-bottom:10px;}
+.question-box { background:#f7faff; border-radius:5px; padding:12px 13px; margin-bottom:22px; color:#1747a2;}
+.btn { background:#f7f8fb; color:#333; border:1px solid #e6e7f4; border-radius:4px; padding:6px 20px; margin-top:18px; text-decoration:none;}
+.btn:hover { background:#e7f1ff; color:#394abc; }
+</style>
+</head>
+<body>
+<div class="container" layout:fragment="content">
+    <h2>답변 상세</h2>
+    <div class="question-box">
+        <b>질문 내용:</b>
+        <span th:text="${answer.question != null ? answer.question.questionText : '질문 없음'}"></span>
+    </div>
+    <div class="meta">
+        <b>답변자:</b> <span th:text="${answer.member != null ? answer.member.name : '관리자'}"></span>
+        <b style="margin-left:15px;">작성일:</b>
+        <span th:text="${@dateFormatUtils.format(answer.createdAt, 'yyyy-MM-dd HH:mm')}"></span>
+    </div>
+    <div style="margin-bottom:17px;">
+        <b>답변 내용:</b>
+        <div th:text="${answer.answerText}" style="margin-top:6px;"></div>
+    </div>
+	<div class="btns">
+	    <!-- 답변 작성: 상태가 OPEN, READY, CLOSED일 때만 -->
+	    <a th:if="${#lists.contains({'OPEN','READY','CLOSED'}, lecture.status.name())}"
+	       th:href="@{/answer/form(questionId=${question.questionId})}">
+	        답변 작성
+	    </a>
+	    <!-- 답변 수정: 답변 목록 반복문에서 각 답변별로 조건에 따라 -->
+	    <a th:if="${#lists.contains({'OPEN','READY','CLOSED'}, lecture.status.name())}"
+	       th:href="@{/answer/edit/{id}(id=${answer.answerId})}">
+	        수정
+	    </a>
+	    <a th:if="${#lists.contains({'OPEN','READY','CLOSED'}, lecture.status.name())}"
+	       th:href="@{/answer/delete/{id}(id=${answer.answerId})}"
+	       onclick="return confirm('정말 삭제하시겠습니까?');">
+	        삭제
+	    </a>
+	</div>
+	    <a class="btn" th:href="@{/answer/list}">목록</a>
+</div>
+</body>
+</html>

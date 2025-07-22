@@ -1,0 +1,57 @@
+<!-- src/main/resources/templates/answer/list.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+<meta charset="UTF-8">
+<title>답변 목록</title>
+<style>
+body { font-family: 'Apple SD Gothic Neo', '맑은 고딕', Arial, sans-serif; background:#fafbfc; }
+.container { max-width:900px; margin:45px auto; background:#fff; border-radius:10px; box-shadow:0 4px 22px #e9e9f0; padding:38px; }
+h2 { color: #38499a; }
+.answer-table { width:100%; border-collapse:collapse; margin-top:15px;}
+.answer-table th, .answer-table td { border:1px solid #ececf2; padding:11px 7px; text-align:center;}
+.answer-table th { background:#f6f7fb; color:#345;}
+.answer-table td.content { text-align:left; }
+.btn { background:#f7f8fb; color:#333; border:1px solid #e6e7f4; border-radius:4px; padding:5px 15px; text-decoration:none;}
+.btn:hover { background:#e7f1ff; color:#394abc; }
+.question-preview { color:#006cbf; font-size:12px; }
+</style>
+</head>
+<body>
+<div class="container" layout:fragment="content">
+    <h2>답변 목록</h2>
+    <a class="btn" th:href="@{/answer/form}">+ 답변 작성</a>
+    <table class="answer-table">
+        <thead>
+        <tr>
+            <th>번호</th>
+            <th>질문내용</th>
+            <th>답변자</th>
+            <th>답변 내용</th>
+            <th>작성일</th>
+            <th>관리</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="ans, iter : ${answerList}">
+            <td th:text="${iter.count}">1</td>
+            <td class="question-preview" th:text="${ans.question != null ? ans.question.questionText : ''}"></td>
+            <td th:text="${ans.member != null ? ans.member.name : '관리자'}"></td>
+            <td class="content" th:text="${ans.answerText}"></td>
+            <td th:text="${@dateFormatUtils.format(ans.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
+            <td>
+                <a th:href="@{/answer/detail/{id}(id=${ans.answerId})}">상세</a>
+                <a th:href="@{/answer/edit/{id}(id=${ans.answerId})}">수정</a>
+                <a th:href="@{/answer/delete/{id}(id=${ans.answerId})}" onclick="return confirm('삭제하시겠습니까?');">삭제</a>
+            </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(answerList)}">
+            <td colspan="6">등록된 답변이 없습니다.</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

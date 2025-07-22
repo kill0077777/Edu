@@ -1,0 +1,49 @@
+<!-- src/main/resources/templates/review/detail.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+
+<head>
+<meta charset="UTF-8">
+<title>리뷰 상세</title>
+<style>
+body { font-family: 'Apple SD Gothic Neo', '맑은 고딕', Arial, sans-serif; background:#fafbfc;}
+.container { max-width:650px; margin:45px auto; background:#fff; border-radius:10px; box-shadow:0 4px 22px #e9e9f0; padding:32px 35px;}
+h2 { color: #38499a; }
+.star-yellow { color: #FFD700; font-size: 1.45em; }
+.star-gray { color: #eee; font-size:1.45em; }
+.review-meta { color:#888; font-size:15px; margin-bottom:7px;}
+.btn { background:#f7f8fb; color:#333; border:1px solid #e6e7f4; border-radius:4px; padding:5px 15px; text-decoration:none;}
+.btn:hover { background:#e7f1ff; color:#394abc; }
+</style>
+</head>
+<body>
+	<div class="container" layout:fragment="content">
+	    <h2>리뷰 상세</h2>
+	    <div class="review-meta">
+	        <b>강의명:</b> <span th:text="${review.lectureTitle}"></span>
+	        <b>작성자:</b> <span th:text="${review.memberName}"></span>
+	    </div>
+	    <div>
+	        <b>평점:</b>
+			<span th:each="i : ${#numbers.sequence(1, 5)}"
+					th:classappend="${review != null and review.rating != null and i <= review.rating} ? 'star-yellow' : 'star-gray'">&#9733;</span>
+	    </div>
+	    <div style="margin:13px 0 14px 0;">
+	        <b>내용:</b>
+	        <span th:text="${review.comment}"></span>
+	    </div>
+	    <div>
+	        <b>작성일:</b>
+	        <span th:text="${@dateFormatUtils.format(review.regDate, 'yyyy-MM-dd HH:mm')}"></span>
+	    </div>
+	    <div style="margin-top:22px;">
+			<a class="btn" th:href="@{/review/edit/{id}(id=${review.reviewId})}">수정</a>
+			<a class="btn" th:href="@{/review/delete/{id}(id=${review.reviewId}, lectureId=${review.lectureId})}"
+							onclick="return confirm('삭제하시겠습니까?');">삭제</a>
+			<a class="btn" th:href="@{/review/lecture/{lectureId}/review(lectureId=${review.lectureId})}">목록</a>
+	    </div>
+	</div>
+</body>
+</html>

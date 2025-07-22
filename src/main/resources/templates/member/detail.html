@@ -1,0 +1,45 @@
+<!-- src/main/resources/templates/member/detail.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>회원 상세</title>
+    <style>
+        body { font-family: 'Pretendard', Arial, sans-serif; background: #f8fafc; }
+        .container { max-width: 500px; margin: 55px auto; background: #fff; border-radius: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.10); padding: 36px 25px 25px; }
+        h1 { font-size: 2rem; color: #1e3447; margin-bottom: 25px; }
+        .info-row { margin-bottom: 14px; }
+        .label { color: #8d99ae; font-weight: 500; font-size:1.1rem; margin-right: 8px; }
+        .value { font-size:1.09rem; color:#273c75; }
+        .role-badge { display:inline-block; border-radius:10px; padding:2px 12px; font-size:0.95rem; color:#fff; background:#28b5b5;}
+        .role-badge.ADMIN { background: #e17055;}
+        .role-badge.INSTRUCTOR { background: #00b894;}
+        .role-badge.STUDENT { background: #0984e3;}
+        .btn { background: #28b5b5; color: #fff; border: none; padding: 7px 19px; border-radius: 8px; font-size: 1rem; cursor: pointer; margin-right: 6px;}
+        .btn:hover { background: #146262;}
+        form { display:inline; }
+    </style>
+</head>
+<body>
+<div class="container">
+	<h1>회원 정보</h1>
+	<div class="info-row"><span class="label">회원번호</span> <span class="value" th:text="${member.memberId}"></span></div>
+	<div class="info-row"><span class="label">아이디</span> <span class="value" th:text="${member.userId}"></span></div>
+	<div class="info-row"><span class="label">이름</span> <span class="value" th:text="${member.name}"></span></div>
+	<div class="info-row"><span class="label">이메일</span> <span class="value" th:text="${member.email}"></span></div>
+	<div class="info-row" sec:authorize="hasRole('ADMIN')">
+		<span class="label">권한</span>
+		<span th:text="${member.role}" th:classappend="'role-badge ' + ${member.role}"></span>
+	</div>
+	<div class="info-row"><span class="label">가입일</span>
+		<span class="value" th:text="${@dateFormatUtils.format(member.regDate, 'yyyy-MM-dd HH:mm')}"></span>
+    </div>
+	<div sec:authorize="hasRole('ADMIN')">
+		<a th:href="@{/member/edit/{userId}(userId=${member.userId})}" class="btn">수정</a>
+		<form th:action="@{/member/delete/{userId}(userId=${member.userId})}" method="post" style="display:inline;">
+            <button type="submit" class="btn" style="background:#e17055;">삭제</button>
+		</form>
+	</div>
+	<a th:href="@{/member/list}" class="btn" style="background:#b2bec3;">목록</a>
+</div>
+</body>
+</html>

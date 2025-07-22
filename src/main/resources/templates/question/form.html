@@ -1,0 +1,73 @@
+<!-- src/main/resources/templates/question/form.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${question.questionId == null ? '질문 작성' : '질문 수정'}">질문 작성</title>
+    <style>
+        body { font-family: 'Pretendard', Arial, sans-serif; background:#f5f6fa;}
+        .container { max-width:540px; margin:54px auto; background:#fff; border-radius:13px; box-shadow:0 8px 28px #e7e9f0; padding:38px 30px;}
+        h2 { color:#3867d6; font-size:1.65rem; font-weight:700; margin-bottom:28px;}
+        label { font-weight:600; color:#223; margin-bottom:7px; display:block;}
+        .form-row { margin-bottom:20px; }
+        select, textarea {
+            width:100%; border:1px solid #e2e6f0; border-radius:8px; padding:12px 11px;
+            font-size:1.08rem; background:#f7f8fc; box-sizing:border-box; transition: border .16s;
+        }
+        select:focus, textarea:focus { border-color:#3867d6; outline:none;}
+        textarea { min-height:80px; resize:vertical; }
+        .btn { background:#3867d6; color:#fff; border:none; padding:11px 28px; border-radius:8px; font-size:1.1rem; font-weight:600; cursor:pointer; margin-right:10px;}
+        .btn:hover { background:#273c75;}
+        .btn.secondary { background:#bfc9d1; color:#324055;}
+        .counter { float:right; color:#888; font-size:0.95rem;}
+    </style>
+    <script>
+        function updateCounter() {
+            const textarea = document.getElementById('questionText');
+            const counter = document.getElementById('counter');
+            counter.textContent = textarea.value.length + "/1000";
+        }
+    </script>
+</head>
+<body>
+<div class="container" layout:fragment="content">
+    <h2 th:text="${questionFormDto.questionId == null ? '질문 작성' : '질문 수정'}"></h2>
+    <form th:action="@{/question/save}" th:object="${question}" method="post" autocomplete="off">
+        <input type="hidden" th:field="*{questionId}"/>
+        <div class="form-row">
+            <label>강의 선택</label>
+            <select th:field="*{lecture.lectureId}" required>
+                <option value="" disabled>-- 강의 선택 --</option>
+                <option th:each="lec : ${lectureList}"
+                        th:value="${lec.lectureId}"
+                        th:text="${lec.title}"
+                        th:selected="${lec.lectureId == question.lecture?.lectureId}">
+                </option>
+            </select>
+        </div>
+        <div class="form-row">
+            <label>질문 내용
+                <span id="counter" class="counter" th:text="${question.questionText != null ? #strings.length(question.questionText) : 0} + '/1000'"></span>
+            </label>
+            <textarea id="questionText"
+                      th:field="*{questionText}"
+                      maxlength="1000"
+                      required
+                      placeholder="질문을 입력하세요"
+                      oninput="updateCounter()"></textarea>
+        </div>
+        <div class="btn-wrap">
+            <button type="submit" class="btn">저장</button>
+            <a th:href="@{/question/list}" class="btn secondary">목록</a>
+        </div>
+    </form>
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        updateCounter();
+    });
+</script>
+</body>
+</html>

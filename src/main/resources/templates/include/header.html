@@ -1,0 +1,26 @@
+<header style="background:#3085ef;">
+	<div class="container d-flex justify-content-between align-items-center py-2"> 
+		<a th:href="@{/}" style="font-size:1.4rem; font-weight:bold; color:#fff; text-decoration:none;">
+			EduClass
+        </a>
+        <nav>
+			
+				<a th:href="@{/notice/list}" class="mx-2 text-white">공지사항</a>
+				<a th:href="@{/lecture/list}" class="mx-2 text-white">강의목록</a>
+				
+				<a th:href="@{/review/list}" class="mx-2 text-white">리뷰</a>
+				<a th:href="@{/question/list}" class="mx-2 text-white">Q&A</a>
+			
+		</nav>
+        <div>
+            <span sec:authorize="isAnonymous()">
+                <a th:href="@{/user/login}" class="mx-2 text-white">로그인</a>
+                <a th:href="@{/member/form}" class="mx-2 text-white">회원가입</a>
+            </span>
+            <span sec:authorize="isAuthenticated()">
+                <span style="color:#ffe082;" sec:authentication="name"></span>님
+                <a th:href="@{/logout}" class="mx-2 text-white">로그아웃</a>
+            </span>
+        </div>
+    </div>
+</header>

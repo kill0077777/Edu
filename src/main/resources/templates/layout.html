@@ -1,0 +1,30 @@
+<!-- templates/layout.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	  lang="ko">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link rel="stylesheet" th:href="@{/bootstrap.min.css}">
+		<link rel="stylesheet" th:href="@{/style.css}">
+		<title layout:title-pattern="$TITLE - EduClass">EduClass</title>
+	</head>
+	<body>
+		<!-- 헤더 네비게이션 -->
+		<nav th:replace="~{navbar :: navbarFragment}"></nav>
+		<!-- <th:block th:replace="~{include/header.html}"></th:block> -->
+		<!-- <th:block th:repclace="include/header.html"></th:block>-->
+	    <!-- 메인 콘텐츠 -->
+		<main style="min-height:65vh;">
+			<div class="container">
+				<section layout:fragment="content"></section>
+			</div>
+		</main>
+		<!-- 푸터 -->
+		<th:block th:replace="~{include/footer.html}"></th:block>
+		<!-- <th:block th:replace="include/footer.html"></th:block>-->
+	    <script th:src="@{/bootstrap.min.js}"></script>
+	    <th:block layout:fragment="script"></th:block>
+	</body>
+</html>

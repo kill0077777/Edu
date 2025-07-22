@@ -1,0 +1,84 @@
+<!-- src/main/resources/templates/question/list.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <meta charset="UTF-8">
+    <title layout:title="Q & A">Q & A</title>
+    <style>
+        body { font-family:'Pretendard', Arial, sans-serif; background:#f8fafc; }
+        .container { max-width:900px; margin:40px auto; background:#fff; border-radius:16px; box-shadow:0 6px 26px #e7e9f0; padding:34px; }
+        h2 { color:#345; font-size:2.1rem; font-weight:700; margin-bottom:28px; }
+        .btn { background:#3867d6; color:#fff; border:none; border-radius:7px; padding:7px 21px; font-size:1.06rem; margin-bottom:18px; font-weight:500; cursor:pointer; text-decoration:none;}
+        .btn:hover { background:#273c75; }
+        table { width:100%; border-collapse:collapse; margin-top:10px; }
+        th, td { padding:13px 8px; text-align:center; border-bottom:1px solid #e7e9f0;}
+        th { background:#f4f6fc; color:#273c75;}
+        tr:hover { background:#f1f8ff; }
+        .title { text-align:left; }
+        .title-link { color:#273c75; text-decoration:none; font-weight:500;}
+        .title-link:hover { text-decoration:underline; color:#3867d6;}
+        .status-answered { color:#13ae63; font-weight:600; }
+        .status-waiting { color:#b2bec3; font-weight:600; }
+        .paging { text-align:center; margin:22px 0 0 0; }
+        .paging a, .paging b {
+            display:inline-block; min-width:32px; padding:7px 0;
+            border-radius:7px; margin:0 2px; font-size:1.09em;
+            color:#38499a; background:#f7f7fc; text-decoration:none; font-weight:600;
+        }
+        .paging a:hover { background:#dbe8fa; color:#1849a8;}
+        .paging b { background:#38499a; color:#fff;}
+        @media (max-width: 600px) {
+            .container { padding: 12px; }
+            th, td { font-size:0.95rem; padding:8px 3px;}
+        }
+    </style>
+</head>
+<body>
+<div class="container" layout:fragment="content">
+    <h2>Q&A 질문 목록</h2>
+    <a class="btn" th:href="@{/question/form}">+ 질문 작성</a>
+    <table>
+        <thead>
+            <tr>
+                <th>번호</th>
+                <th>강의</th>
+                <th>질문</th>
+                <th>작성자</th>
+                <th>등록일</th>
+                <th>답변상태</th>
+            </tr>
+        </thead>
+        <tbody>
+        <tr th:each="question, iterStat : ${questionPage.content}">
+            <td th:text="${questionPage.totalElements - (questionPage.number * questionPage.size + iterStat.index)}">1</td>
+            <td th:text="${question.lecture != null ? question.lecture.title : '-'}">강의명</td>
+            <td class="title">
+                <a th:href="@{/question/detail/{id}(id=${question.questionId})}"
+                   th:text="${question.questionText}" class="title-link"></a>
+            </td>
+            <td th:text="${question.member != null ? question.member.name : '익명'}">작성자</td>
+            <td th:text="${@dateFormatUtils.format(question.createdAt, 'yyyy-MM-dd HH:mm')}">2025-07-05</td>
+            <td>
+                <span th:if="${question.answerList != null && !#lists.isEmpty(question.answerList)}" class="status-answered">답변완료</span>
+                <span th:if="${question.answerList == null || #lists.isEmpty(question.answerList)}" class="status-waiting">미답변</span>
+            </td>
+        </tr>
+        <tr th:if="${questionPage.content.size() == 0}">
+            <td colspan="6">등록된 질문이 없습니다.</td>
+        </tr>
+        </tbody>
+    </table>
+    <!-- 페이징 바 -->
+    <div class="paging" th:if="${questionPage.totalPages > 1}">
+        <a th:if="${questionPage.hasPrevious()}" th:href="@{/question/list(page=${questionPage.number},size=${questionPage.size})}">&laquo;</a>
+        <span th:each="i : ${#numbers.sequence(1, questionPage.totalPages)}">
+            <a th:if="${i != questionPage.number+1}" th:href="@{/question/list(page=${i},size=${questionPage.size})}" th:text="${i}"></a>
+            <b th:if="${i == questionPage.number+1}" th:text="${i}"></b>
+        </span>
+        <a th:if="${questionPage.hasNext()}" th:href="@{/question/list(page=${questionPage.number+2},size=${questionPage.size})}">&raquo;</a>
+    </div>
+</div>
+</body>
+</html>

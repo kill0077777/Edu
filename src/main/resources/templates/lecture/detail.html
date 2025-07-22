@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layout}">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${lecture.title}">강의 상세</title>
+    <style>
+        body { background:#f5f6fa; }
+        .card-box { max-width:900px; margin:46px auto; background:#fff; border-radius:15px; box-shadow:0 5px 30px #e7eaf0; padding:46px 44px;}
+        h2 { color: #2b3777; border-bottom:2px solid #ecf0fa; padding-bottom:10px; margin-bottom:35px;}
+        .lecture-info { display:flex; flex-wrap:wrap; gap:26px; margin-bottom:24px; }
+        .lecture-info span { font-size:1.05rem; color:#888; margin-bottom:6px;}
+        .lecture-thumb { margin:18px 0; }
+        .lecture-thumb img { border-radius:10px; box-shadow:0 2px 12px #ececec;}
+        .content-list, .review-list, .qa-list { list-style:none; margin:0; padding:0;}
+        .review-item, .qa-item { background:#f7faff; border-radius:8px; margin-bottom:16px; box-shadow:0 2px 10px #f3f4fa; padding:16px 20px;}
+        .star-yellow { color: #FFD700; font-size: 1.22em;}
+        .star-gray { color: #eee; font-size: 1.22em;}
+        .review-meta, .qa-meta { color:#888; font-size:14px; margin-bottom:5px;}
+        .review-actions a, .qa-actions a, .answer-actions a { font-size:13px; color:#2283ee; margin-right:12px; text-decoration:none;}
+        .review-actions a:hover, .qa-actions a:hover, .answer-actions a:hover { text-decoration:underline;}
+        .btns { margin-top:32px; }
+        .btns a, .btns button { display:inline-block; margin-right:16px; background:#e6eafe; color:#38499a; padding:9px 24px; border-radius:6px; border:1px solid #c6cef0; text-decoration:none; font-weight:600;}
+        .btns a:hover, .btns button:hover { background:#d0e4fe; color:#2b3777; }
+        .answer-box { background:#f8f9fa; border-radius:5px; margin:11px 0 0 20px; padding:8px 15px;}
+        .answer-meta { color:#777; font-size:13px;}
+        hr { border:0; border-top:1px solid #e8eaf2; margin:28px 0 22px 0;}
+    </style>
+</head>
+<body>
+<div class="card-box" layout:fragment="content">
+    <h2 th:text="${lecture.title}">강의명</h2>
+    <div class="lecture-info">
+        <span>강사: <b th:text="${lecture.instructor != null ? lecture.instructor.name : '미지정'}"></b></span>
+        <span>강의번호: <b th:text="${lecture.lectureId}"></b></span>
+        <span>카테고리: <b th:text="${lecture.category}"></b></span>
+        <span>가격: 
+            <b th:if="${lecture.price == 0}">무료</b>
+            <b th:unless="${lecture.price == 0}" th:text="${lecture.price + '원'}"></b>
+        </span>
+        <span>상태: 
+            <span th:switch="${lecture.status}">
+                <span th:case="'OPEN'" class="badge badge-open">OPEN</span>
+                <span th:case="'READY'" class="badge badge-other">READY</span>
+                <span th:case="'CLOSED'" class="badge badge-closed">CLOSED</span>
+                <span th:case="*" class="badge badge-other" th:text="${lectureStatus}"></span>
+            </span>
+        </span>
+        <span>등록일: <b th:text="${@dateFormatUtils.format(lecture.regDate, 'yyyy-MM-dd HH:mm')}"></b></span>
+    </div>
+    <div th:if="${lecture.thumbnail != null}" class="lecture-thumb">
+        <img th:src="@{${lecture.thumbnail}}" alt="썸네일" width="230">
+    </div>
+    <div style="margin:19px 0 26px 0;">
+        <b>설명:</b>
+        <div th:text="${lecture.description}" style="margin-top:8px; color:#555;"></div>
+    </div>
+    <hr>
+    <!-- 강의자료 -->
+    <h3>강의자료</h3>
+    <ul class="content-list">
+        <li th:each="content : ${lecture.contentList}">
+            [<span th:text="${content.contentType}"></span>]
+            <a th:href="@{${content.fileUrl}}" target="_blank" th:text="${content.fileUrl}"></a>
+        </li>
+        <li th:if="${#lists.isEmpty(lecture.contentList)}">등록된 자료가 없습니다.</li>
+    </ul>
+    <hr>
+
+	<!-- 리뷰 영역 -->
+	<h3>리뷰</h3>
+	<ul class="review-list">
+		<li th:each="review : ${reviewPage.content}" class="review-item">
+	 		<div class="review-meta">
+	 			<b th:text="${review.memberName}">작성자</b>
+	 			<span style="margin-left:10px;">
+	 				<span th:each="i : ${#numbers.sequence(1, 5)}"
+						  th:classappend="${review.rating != null and i <= review.rating} ? 'star-yellow' : 'star-gray'">&#9733;</span>
+				</span>
+				<span style="margin-left:10px;"
+					  th:text="${review.regDate != null ? @dateFormatUtils.format(review.regDate, 'yyyy-MM-dd HH:mm') : ''}"></span>
+	 		</div>
+	 		<div th:text="${review.comment}"></div>
+			<!-- 본인 리뷰만 수정/삭제 -->
+			<div class="review-actions"
+				 th:if="${review.userId != null and #authentication.name != null and review.userId == #authentication.name}">
+				<a th:href="@{/review/edit/{id}(id=${review.reviewId})}">수정</a>
+				<form th:action="@{/review/delete/{id}(id=${review.reviewId})}" method="post" style="display:inline;">
+					<button type="submit" onclick="return confirm('삭제하시겠습니까?');">삭제</button>
+				</form>
+			</div>
+		</li>
+		<li th:if="${#lists.isEmpty(reviewPage.content)}" style="color:#bbb;">등록된 리뷰가 없습니다.</li>
+	</ul>
+
+	<!-- Q&A (질문/답변) -->
+	<h3>질문(Q&A)</h3>
+	<ul class="qa-list">
+		<li th:each="q : ${questionPage.content}" class="qa-item">
+        <div class="qa-meta">
+            <b th:text="${q.memberName != null ? q.memberName : '익명'}"></b> |
+            <span th:text="${@dateFormatUtils.format(q.createdAt, 'yyyy-MM-dd HH:mm')}"></span>
+        </div>
+        <div style="margin-bottom:8px;">
+            <span th:text="${q.questionText}"></span>
+        </div>
+        <!-- 질문 수정/삭제: 본인만 -->
+        <div class="qa-actions"
+             th:if="${q.userId != null and #authentication.name != null and q.userId == #authentication.name}">
+            <a th:href="@{/question/edit/{id}(id=${q.questionId})}">수정</a>
+            <form th:action="@{/question/delete/{id}(id=${q.questionId})}" method="post" style="display:inline;">
+                <button type="submit" onclick="return confirm('질문 삭제하시겠습니까?');">삭제</button>
+            </form>
+            <a th:href="@{/question/detail/{id}(id=${q.questionId})}">상세</a>
+        </div>
+        <!-- 답변(있는 경우만) -->
+        <div th:if="${q.answerList != null and !#lists.isEmpty(q.answerList)}">
+            <div th:each="ans : ${q.answerList}" class="answer-box">
+                <span style="color:#38499a"><b th:text="${ans.memberName != null ? ans.memberName : '관리자'}"></b></span>:
+                <span th:text="${ans.answerText}"></span>
+                <span class="answer-meta" th:text="${@dateFormatUtils.format(ans.createdAt, 'yyyy-MM-dd HH:mm')}"></span>
+                <span class="answer-actions"
+                      th:if="${ans.userId != null and #authentication.name != null and ans.userId == #authentication.name}">
+                    <a th:href="@{/answer/edit/{id}(id=${ans.answerId})}">수정</a>
+                    <form th:action="@{/answer/delete/{id}(id=${ans.answerId})}" method="post" style="display:inline;">
+                        <button type="submit" onclick="return confirm('답변 삭제하시겠습니까?');">삭제</button>
+                    </form>
+                </span>
+            </div>
+        </div>
+    </li>
+    <li th:if="${#lists.isEmpty(questionPage.content)}" style="color:#bbb;">등록된 질문이 없습니다.</li>
+</ul>
+
+	<!-- 버튼 영역 -->
+	<div class="btns">
+		<!-- 리뷰 작성: 수강생+STUDENT+수강중/완료 & 강의상태 가능할 때만 -->
+		<a th:if="${canWriteReview and #lists.contains({'OPEN','READY','CLOSED','END'}, lecture.status.name())}"
+		   th:href="@{/review/form(lectureId=${lecture.lectureId})}">리뷰 작성</a>
+		<!-- 질문 작성 버튼: 로그인 누구나 -->
+		<a th:if="${#lists.contains({'OPEN','READY','CLOSED','END'}, lecture.status.name())}"
+		   th:href="@{/question/form(lectureId=${lecture.lectureId})}">질문 작성</a>
+		<!-- 강의 수정/삭제: 관리자, 강사만 (canEdit 변수를 controller에서 전달 필요) -->
+		<a th:if="${canEdit}" th:href="@{/lecture/form(id=${lecture.lectureId})}">강의 수정</a>
+		<form th:if="${canEdit}" th:action="@{/lecture/delete/{id}(id=${lecture.lectureId})}" method="post" style="display:inline;">
+			<button type="submit" onclick="return confirm('정말 삭제하시겠습니까?');">강의 삭제</button>
+		</form>
+		<!-- 목록 버튼 영역 (lectureId 있을 때와 없을 때 분기) -->
+		<a class="btn" th:if="${lectureId != null}" th:href="@{/review/lecture/{lectureId}/review(lectureId=${lectureId})}">목록</a>
+		<a class="btn" th:if="${lectureId == null}" th:href="@{/review/list}">목록</a>
+	</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title layout:title="공지사항">공지사항</title>
+    <style>
+        body { font-family: 'Pretendard', Arial, sans-serif; background: #f9fafb; margin: 0; }
+        .container { max-width: 900px; margin: 40px auto; background: #fff; border-radius: 16px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); padding: 32px; }
+        h1 { font-size: 2.3rem; font-weight: 700; color: #2c3e50; margin-bottom: 32px; }
+        .btn { background: #3085ef; color: #fff; border: none; padding: 8px 22px; border-radius: 8px; font-size: 1rem; cursor: pointer; transition: background .2s; }
+        .btn:hover { background: #2068bf; }
+        table { width: 100%; border-collapse: collapse; margin-top: 18px; }
+        th, td { padding: 15px 9px; text-align: center; }
+        th { background: #f1f3f7; font-size: 1rem; color: #222; }
+        tr { transition: background 0.18s; }
+        tr:hover { background: #eaf2fd; }
+        .badge-fixed { background: #e74c3c; color: #fff; padding: 2px 10px; border-radius: 14px; font-size: 0.9rem; margin-right: 4px;}
+        .title-link { color: #222; text-decoration: none; font-weight: 500; }
+        .title-link:hover { text-decoration: underline; color: #3085ef; }
+        .paging { text-align:center; margin:22px 0 0 0; }
+        .paging a, .paging b {
+            display:inline-block; min-width:32px; padding:7px 0;
+            border-radius:7px; margin:0 2px; font-size:1.09em;
+            color:#3085ef; background:#f7f7fc; text-decoration:none; font-weight:600;
+        }
+        .paging a:hover { background:#dbe8fa; color:#1849a8;}
+        .paging b { background:#3085ef; color:#fff;}
+        @media (max-width: 600px) {
+            .container { padding: 10px; }
+            th, td { font-size: 0.97rem; padding: 7px 3px;}
+        }
+    </style>
+</head>
+<body>
+<section class="container" layout:fragment="content">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h1>📢 공지사항</h1>
+        <!-- 글쓰기 버튼: 관리자/강사만 보임 -->
+		<a th:href="@{/notice/form}" class="btn"
+		   sec:authorize="hasAnyRole('ADMIN','INSTRUCTOR')">+ 새 공지 작성</a>
+    </div>
+    <table>
+        <thead>
+        <tr>
+            <th>번호</th>
+            <th>제목</th>
+            <th>작성자</th>
+            <th>작성일</th>
+            <th>조회수</th>
+            <th>상단</th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- 고정 공지(상단) -->
+        <tr th:each="notice : ${fixedList}">
+            <td th:text="${notice.noticeId}"></td>
+            <td style="text-align:left;">
+                <span class="badge-fixed">공지</span>
+                <a th:href="@{/notice/detail/{id}(id=${notice.noticeId})}" th:text="${notice.title}" class="title-link"></a>
+            </td>
+            <td th:text="${notice.writerName}"></td>
+            <td th:text="${#temporals.format(notice.regDate, 'yyyy-MM-dd HH:mm')}"></td>
+            <td th:text="${notice.hit}"></td>
+            <td>상단</td>
+        </tr>
+        <!-- 비고정 공지(페이징) -->
+        <tr th:each="notice : ${noticeList.content}">
+            <td th:text="${notice.noticeId}"></td>
+            <td style="text-align:left;">
+                <a th:href="@{/notice/detail/{id}(id=${notice.noticeId})}" th:text="${notice.title}" class="title-link"></a>
+            </td>
+            <td th:text="${notice.writerName}"></td>
+            <td th:text="${#temporals.format(notice.regDate, 'yyyy-MM-dd HH:mm')}"></td>
+            <td th:text="${notice.hit}"></td>
+            <td></td>
+        </tr>
+        <tr th:if="${fixedList.size() == 0 and noticeList.content.size() == 0}">
+            <td colspan="6" style="color:#aaa;">공지사항이 없습니다.</td>
+        </tr>
+        </tbody>
+    </table>
+    <!-- 페이징 바 -->
+    <div class="paging" th:if="${noticeList.totalPages > 1}">
+        <a th:if="${noticeList.hasPrevious()}"
+           th:href="@{/notice/list(page=${noticeList.number-1},size=${noticeList.size})}">&laquo;</a>
+        <span th:each="i : ${#numbers.sequence(1, noticeList.totalPages)}">
+            <a th:if="${i != noticeList.number+1}"
+               th:href="@{/notice/list(page=${i-1},size=${noticeList.size})}" th:text="${i}"></a>
+            <b th:if="${i == noticeList.number+1}" th:text="${i}"></b>
+        </span>
+        <a th:if="${noticeList.hasNext()}"
+           th:href="@{/notice/list(page=${noticeList.number+1},size=${noticeList.size})}">&raquo;</a>
+    </div>
+</section>
+</body>
+</html>

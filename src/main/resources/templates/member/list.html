@@ -1,0 +1,86 @@
+<!-- src/main/resources/templates/member/list.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title layout:title="회원 목록">회원 목록</title>
+    <style>
+        body { font-family: 'Pretendard', Arial, sans-serif; background: #f8fafc; }
+        .container { max-width: 850px; margin: 40px auto; background: #fff; border-radius: 15px; box-shadow: 0 6px 24px rgba(0,0,0,0.09); padding: 28px; }
+        h1 { font-size: 2.2rem; color: #30475e; margin-bottom: 25px; }
+        .btn { background: #28b5b5; color: #fff; border: none; padding: 7px 20px; border-radius: 8px; font-size: 1rem; cursor: pointer; margin-bottom: 18px; }
+        .btn:hover { background: #146262; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 13px 6px; text-align: center; }
+        th { background: #e7f6f2; color: #232323; }
+        tr { transition: background .18s;}
+        tr:hover { background: #f1fcfa; }
+        .role-badge { display:inline-block; border-radius:10px; padding:2px 12px; font-size:0.95rem; color:#fff; background:#28b5b5; margin-right:3px;}
+        .role-badge.ADMIN { background: #e17055;}
+        .role-badge.INSTRUCTOR { background: #00b894;}
+        .role-badge.STUDENT { background: #0984e3;}
+        .user-link { color: #222; text-decoration: none; font-weight: 500; }
+        .user-link:hover { color: #28b5b5; text-decoration: underline; }
+        .paging { text-align:center; margin:22px 0 0 0; }
+        .paging a, .paging b {
+            display:inline-block; min-width:32px; padding:7px 0;
+            border-radius:7px; margin:0 2px; font-size:1.09em;
+            color:#38499a; background:#f7f7fc; text-decoration:none; font-weight:600;
+        }
+        .paging a:hover { background:#dbe8fa; color:#1849a8;}
+        .paging b { background:#38499a; color:#fff;}
+        @media (max-width: 600px) {
+            .container { padding: 7px;}
+            th, td { font-size: 0.96rem; padding: 7px 2px;}
+        }
+    </style>
+</head>
+<body>
+<div class="container" layout:fragment="content">
+	<h1>👥 회원 목록</h1>
+	<!-- 글쓰기 버튼: 관리자만 보임 -->
+	<a th:href="@{/member/form}" class="btn" sec:authorize="hasAnyRole('ADMIN')">+ 회원 등록</a>
+	<table>
+		<tr>
+			<th>회원번호</th>
+			<th>아이디</th>
+			<th>이름</th>
+			<th>이메일</th>
+			<th sec:authorize="hasRole('ADMIN')">권한</th>
+			<th>가입일</th>
+			<th sec:authorize="hasRole('ADMIN')">관리</th>
+		</tr>
+		<tr th:each="member : ${memberPage.content}">
+			<td th:text="${member.memberId}"></td>
+			<td>
+				<a th:href="@{/member/detail/{userId}(userId=${member.userId})}" th:text="${member.userId}" class="user-link"></a>
+			</td>
+			<td th:text="${member.name}"></td>
+			<td th:text="${member.email}"></td>
+			<td sec:authorize="hasRole('ADMIN')" th:text="${member.role}" th:classappend="'role-badge ' + ${member.role}"></td>
+			<td th:text="${@dateFormatUtils.format(member.regDate, 'yyyy-MM-dd HH:mm')}"></td>
+			<td sec:authorize="hasRole('ADMIN')">
+				<a th:href="@{/member/edit/{userId}(userId=${member.userId})}" class="btn">수정</a>
+				<form th:action="@{/member/delete/{userId}(userId=${member.userId})}" method="post" style="display:inline;">
+					<button type="submit" class="btn" style="background:#e17055;">삭제</button>
+				</form>
+			</td>
+		</tr>
+		<tr th:if="${memberPage.content.size() == 0}">
+            <td colspan="6">회원이 없습니다.</td>
+		</tr>
+	</table>
+
+    <!-- 페이징 바 -->
+    <div class="paging" th:if="${memberPage.totalPages > 1}">
+        <a th:if="${memberPage.hasPrevious()}" th:href="@{/member/list(page=${memberPage.number},size=${memberPage.size})}">&laquo;</a>
+        <span th:each="i : ${#numbers.sequence(1, memberPage.totalPages)}">
+            <a th:if="${i != memberPage.number+1}" th:href="@{/member/list(page=${i},size=${memberPage.size})}" th:text="${i}"></a>
+            <b th:if="${i == memberPage.number+1}" th:text="${i}"></b>
+        </span>
+        <a th:if="${memberPage.hasNext()}" th:href="@{/member/list(page=${memberPage.number+2},size=${memberPage.size})}">&raquo;</a>
+    </div>
+</div>
+</body>
+</html>
