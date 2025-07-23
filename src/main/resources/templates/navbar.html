@@ -49,10 +49,6 @@
 						data-bs-toggle="dropdown" aria-expanded="false">
                         <span style="color:#ffe082;" sec:authentication="principal.member.name"></span> 님 환영합니다
 					</a>
-					<!-- 로그아웃은 POST로! -->
-							<form th:action="@{/member/logout}" method="post" style="margin:0;">
-								<button type="submit" class="dropdown-item">로그아웃</button>
-							</form>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
 						<!-- 추가로 마이페이지/내정보 메뉴 등 확장 가능 -->
 						<!-- <li><a class="dropdown-item" th:href="@{/member/profile}">내 정보</a></li> -->
