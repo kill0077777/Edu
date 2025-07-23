@@ -21,6 +21,10 @@
 <body>
 <div class="container" layout:fragment="content">
 
+	<!-- 메시지 표시 -->
+    <div th:if="${msg != null}">
+        <script th:inline="javascript">alert([[${msg}]]);</script>
+    </div>
     <!-- notice 객체가 null이 아닐 때 본문 출력 -->
     <div th:if="${notice != null}">
         <div>

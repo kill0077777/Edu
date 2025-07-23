@@ -3,7 +3,7 @@ package com.edu.lecture;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.security.Principal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +33,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.edu.dto.LectureFormDto;
+import com.edu.dto.NoticeFormDto;
 import com.edu.dto.QuestionDto;
 import com.edu.dto.ReviewDto;
 import com.edu.enrollment.EnrollmentService;
@@ -40,10 +41,13 @@ import com.edu.entity.Enrollment;
 import com.edu.entity.Lecture;
 import com.edu.entity.LectureStatus;
 import com.edu.entity.Member;
+import com.edu.entity.Notice;
 import com.edu.entity.Question;
 import com.edu.entity.Review;
+import com.edu.entity.Role;
 import com.edu.member.MemberService;
 import com.edu.member.MemberUserDetails;
+import com.edu.notice.NoticeService;
 import com.edu.question.QuestionService;
 import com.edu.review.ReviewService;
 
@@ -58,8 +62,7 @@ public class LectureController {
 	private final ReviewService	reviewService;
 	private final QuestionService questionService;
 	private final EnrollmentService enrollmentService;
-
-	//private final LectureFormDto lectureFormDto;
+	private final NoticeService noticeService;
 
 	// 파일 저장 메서드 (Controller 내부에 둘 수도 있고, 별도 Service로 분리도 가능)
 	private static final String UPLOAD_DIR = "/uploads/lecture/";
@@ -178,78 +181,97 @@ public class LectureController {
 	@PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
 	// 1) 신규 등록: /lecture/form  2) 수정: /lecture/edit/{lectureId} (PathVariable)
 	@GetMapping({"/form", "/edit/{lectureId}"})
-	public String form(
-	        @PathVariable(value = "lectureId", required = false) Long lectureId,
-	        @RequestParam(value = "lectureId", required = false) Long reqLectureId, // 혹시 쿼리파라미터로도 지원
-	        Model model) {
+	public String form(@RequestParam(value = "lectureId", required = false) Long lectureId,
+	                   Model model,
+	                   Principal principal) {
+	    LectureFormDto lectureFormDto = (lectureId != null) ? lectureService.getFormDto(lectureId) : new LectureFormDto();
 
-	    // URL 타입별로 lectureId 매핑
-	    Long id = (lectureId != null) ? lectureId : reqLectureId;
+	    // 현재 로그인 사용자의 role 판별
+	    String loginUserId = principal.getName();
+	    Member loginUser = memberService.findByUserId(loginUserId).orElse(null);
+	    boolean isAdmin = loginUser != null && loginUser.getRole() == Role.ADMIN;
+	    boolean isInstructor = loginUser != null && loginUser.getRole() == Role.INSTRUCTOR;
 
-	    LectureFormDto lectureFormDto;
-	    if (id != null) { // 수정폼
-	        Lecture lecture = lectureService.findById(id)
-	                .orElseThrow(() -> new AccessDeniedException("존재하지 않는 강의입니다."));
-	        checkEditPermission(lecture); // 권한 체크
-	        lectureFormDto = lectureService.getFormDto(id);
-	    } else { // 신규등록 폼
-	        lectureFormDto = new LectureFormDto();
+	    List<Member> instructorList;
+	    if (isAdmin) {
+	        instructorList = memberService.findAllInstructors();
+	    } else if (isInstructor) {
+	        instructorList = List.of(loginUser); // 본인만 리스트에 넣음
+	    } else {
+	    	instructorList = List.of();
 	    }
 
-	    // 강사 목록(없을 때 빈 리스트)
-	    List<Member> instructorList = memberService.findAllInstructors();
-	    if (instructorList == null) {
-			instructorList = new ArrayList<>();
-		}
+	    // 상태 옵션(OPEN, CLOSED만)
+	    List<LectureStatus> statusList = List.of(LectureStatus.OPEN, LectureStatus.CLOSED);
 
-	    // 필수 model 데이터 세팅
-	    model.addAttribute("statusList", LectureStatus.values());
 	    model.addAttribute("lectureFormDto", lectureFormDto);
 	    model.addAttribute("instructorList", instructorList);
+	    model.addAttribute("isInstructor", isInstructor);
+	    model.addAttribute("statusList", statusList);;
 
 	    return "lecture/form";
 	}
 
 	// [관리자/강사만] 강의 저장
 	// 저장 (등록/수정): ADMIN 또는 본인 INSTRUCTOR만 가능 (권장: 추가로 checkEditPermission 호출)
-	@PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
+	@PreAuthorize("hasAnyRole('ADMIN','INSTRUCTOR')")
 	@PostMapping("/save")
-	public String save(@ModelAttribute LectureFormDto lectureFormDto, Model model) throws IOException {
-		List<String> thumbnailPaths = new ArrayList<>();
-		if (lectureFormDto.getThumbnailFiles() != null && !lectureFormDto.getThumbnailFiles().isEmpty()) {
-			for (MultipartFile file : lectureFormDto.getThumbnailFiles()) {
-				if (!file.isEmpty()) {
-					thumbnailPaths.add(saveThumbnail(file, folderName));
-				}
-			}
-		}
-		lectureFormDto.setThumbnailPaths(thumbnailPaths);
-		Member instructor = memberService.findByUserId(lectureFormDto.getUserId()).orElse(null);
-		Integer price = (lectureFormDto.getPrice() == null) ? 0 : lectureFormDto.getPrice();
+	public String save(@ModelAttribute NoticeFormDto noticeFormDto,
+	                   Principal principal,
+	                   RedirectAttributes redirectAttributes,  // ⭐ 추가!
+	                   Model model) {
+	    Notice notice;
+	    String currentUserId = principal.getName();
+	    Member writer = memberService.findByUserId(currentUserId).orElse(null);
 
-		LectureStatus statusEnum;
-		try {
-			statusEnum = (lectureFormDto.getStatus() != null)
-				? LectureStatus.valueOf(lectureFormDto.getStatus())
-						: LectureStatus.OPEN;
-		} catch (Exception e) {
-			statusEnum = LectureStatus.OPEN;
-		}
+	    if (writer == null) {
+	        model.addAttribute("msg", "존재하지 않는 회원입니다.");
+	        return "notice/form";
+	    }
 
-		Lecture lecture = Lecture.builder()
-				.lectureId(lectureFormDto.getLectureId())
-				.title(lectureFormDto.getTitle())
-				.description(lectureFormDto.getDescription())
-				.category(lectureFormDto.getCategory())
-				.price(price)
-				.status(statusEnum)
-				.instructor(instructor)
-				.thumbnail(thumbnailPaths.isEmpty() ? null : thumbnailPaths.get(0))
-				.thumbnails(thumbnailPaths)
-				.build();
-		lectureService.save(lecture);
-		return "redirect:/lecture/list";
+	    boolean isUpdate = noticeFormDto.getNoticeId() != null;
+	    try {
+	        if (isUpdate) {
+	            notice = noticeService.getNotice(noticeFormDto.getNoticeId());
+	            if (notice == null) {
+	                model.addAttribute("msg", "존재하지 않는 공지입니다.");
+	                return "notice/form";
+	            }
+	            // 본인 글만 수정 가능, 작성자 없으면 자동 등록
+	            if (notice.getWriter() != null) {
+	                if (!notice.getWriter().getUserId().equals(currentUserId)) {
+	                    model.addAttribute("msg", "본인 작성글만 수정할 수 있습니다.");
+	                    return "notice/form";
+	                }
+	            } else {
+	                notice.setWriter(writer);
+	            }
+	            notice.setTitle(noticeFormDto.getTitle());
+	            notice.setContent(noticeFormDto.getContent());
+	            notice.setFixedFlag(Boolean.TRUE.equals(noticeFormDto.getFixedFlag()));
+	        } else {
+	            // 신규 등록
+	            notice = Notice.builder()
+	                    .title(noticeFormDto.getTitle())
+	                    .content(noticeFormDto.getContent())
+	                    .fixedFlag(Boolean.TRUE.equals(noticeFormDto.getFixedFlag()))
+	                    .hit(0)
+	                    .writer(writer)
+	                    .build();
+	        }
+	        noticeService.saveNotice(notice);
+
+	        // 🔥 Flash Attribute로 메시지 전달
+	        redirectAttributes.addFlashAttribute("msg", "공지 " + (isUpdate ? "수정" : "등록") + "이 완료되었습니다.");
+
+	        return "redirect:/notice/list";
+	    } catch (Exception e) {
+	        model.addAttribute("msg", "공지 " + (isUpdate ? "수정" : "등록") + "에 실패하였습니다.");
+	        return "notice/form";
+	    }
 	}
+
+
 
 
 

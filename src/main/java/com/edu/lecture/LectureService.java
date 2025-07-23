@@ -10,7 +10,11 @@ import org.springframework.stereotype.Service;
 import com.edu.dto.LectureFormDto;
 import com.edu.entity.Lecture;
 import com.edu.entity.LectureStatus;
+import com.edu.entity.Member;
 import com.edu.entity.Review;
+import com.edu.entity.Role;
+import com.edu.member.MemberRepository;
+import com.edu.member.MemberService;
 import com.edu.review.ReviewRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -21,6 +25,8 @@ public class LectureService {
 	//@Autowired
     private final LectureRepository lectureRepository;
     private final ReviewRepository reviewRepository;
+    private final MemberRepository memberRepository;
+    private final MemberService memberService;
 
     public Lecture getLecture(Long id) {
         return lectureRepository.findById(id).orElse(null);
@@ -49,19 +55,40 @@ public class LectureService {
         }
         return false;
     }
-    public Lecture saveFromDto(LectureFormDto lectureFormDto) {
-        // lectureFormDto → entity 변환, 예시 (상세 변환은 lectureFormDto/엔티티 구조에 맞게!)
-        Lecture entity = Lecture.builder()
-                .lectureId(lectureFormDto.getLectureId())
-                .title(lectureFormDto.getTitle())
-                .description(lectureFormDto.getDescription())
-                .category(lectureFormDto.getCategory())
-                .price(lectureFormDto.getPrice())
-                .status(LectureStatus.valueOf(lectureFormDto.getStatus()))
-                // .instructor(실제 Instructor Member 설정)
+    public void saveFromDto(LectureFormDto dto, Member loginUser) {
+        Lecture lecture;
+        if (dto.getLectureId() != null) {
+            lecture = lectureRepository.findById(dto.getLectureId())
+                        .orElseThrow(() -> new IllegalArgumentException("강의 없음"));
+            lecture.setTitle(dto.getTitle());
+            lecture.setDescription(dto.getDescription());
+            lecture.setCategory(dto.getCategory());
+            lecture.setPrice(dto.getPrice());
+            // status 변환
+            if (dto.getStatus() != null) {
+                lecture.setStatus(LectureStatus.valueOf(dto.getStatus()));
+            }
+            if (loginUser.getRole() == Role.ADMIN && dto.getInstructorId() != null) {
+                Member instructor = memberService.findById(dto.getInstructorId()).orElse(null);
+                lecture.setInstructor(instructor);
+            }
+            // 썸네일 등...
+        } else {
+            Member instructor = loginUser.getRole() == Role.INSTRUCTOR
+                ? loginUser
+                : memberService.findById(dto.getInstructorId()).orElse(null);
+            lecture = Lecture.builder()
+                .title(dto.getTitle())
+                .description(dto.getDescription())
+                .category(dto.getCategory())
+                .price(dto.getPrice())
+                .status(LectureStatus.valueOf(dto.getStatus()))
+                .instructor(instructor)
                 .build();
-        return lectureRepository.save(entity);
+        }
+        lectureRepository.save(lecture);
     }
+
 
     public LectureFormDto getFormDto(Long lectureId) {
         return lectureRepository.findById(lectureId)
@@ -96,5 +123,12 @@ public class LectureService {
 
 	public boolean existsById(Long lectureId) {
 	    return lectureRepository.existsById(lectureId);
+	}
+	public List<Member> findAllInstructors() {
+	    return memberRepository.findByRole(Role.INSTRUCTOR);
+	}
+
+	public Optional<Member> findByUserId(String userId) {
+	    return memberRepository.findByUserId(userId);
 	}
 }

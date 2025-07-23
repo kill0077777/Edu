@@ -46,7 +46,16 @@
     </style>
 </head>
 <body>
+
+
 <section class="card-box" layout:fragment="content">
+	<!-- notice/list.html 또는 notice/form.html 상단에 추가 -->
+	<div th:if="${param.msg != null}" style="color:#3b87e5; font-weight:600; margin:10px 0;">
+		<span th:text="${param.msg}"></span>
+	</div>
+	<div th:if="${msg != null}" style="color:#e74c3c; font-weight:600; margin:10px 0;">
+		<span th:text="${msg}"></span>
+	</div>
     <div style="display:flex; justify-content:space-between; align-items:center;">
         <h2>강의 목록</h2>
 		<a th:href="@{/lecture/form}" class="btn"

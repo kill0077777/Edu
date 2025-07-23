@@ -1,3 +1,4 @@
+<!-- src/main/resources/templates/notice/list.html -->
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
@@ -35,6 +36,11 @@
 </head>
 <body>
 <section class="container" layout:fragment="content">
+
+	<!-- 메시지 표시 -->
+    <div th:if="${msg != null}">
+        <script th:inline="javascript">alert([[${msg}]]);</script>
+    </div>
     <div style="display:flex; justify-content:space-between; align-items:center;">
         <h1>📢 공지사항</h1>
         <!-- 글쓰기 버튼: 관리자/강사만 보임 -->

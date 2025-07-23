@@ -46,6 +46,15 @@
 </head>
 <body>
 <div class="form-container" layout:fragment="content">
+
+	<!-- notice/list.html 또는 notice/form.html 상단에 추가 -->
+	<div th:if="${param.msg != null}" style="color:#3b87e5; font-weight:600; margin:10px 0;">
+		<span th:text="${param.msg}"></span>
+	</div>
+	<div th:if="${msg != null}" style="color:#e74c3c; font-weight:600; margin:10px 0;">
+		<span th:text="${msg}"></span>
+	</div>
+
     <h2 th:text="${lectureFormDto.lectureId == null ? '강의 등록' : '강의 수정'}"></h2>
     <form th:action="@{/lecture/save}" th:object="${lectureFormDto}" method="post" enctype="multipart/form-data">
         <input type="hidden" th:field="*{lectureId}" />
@@ -65,27 +74,27 @@
             <label>가격</label>
             <input type="number" th:field="*{price}" min="0" placeholder="0은 무료"/>
         </div>
-        <div class="form-group">
-            <label>상태</label>
-            <select th:field="*{lectureStatus}">
-                <option th:each="stat : ${statusList}"
-                        th:value="${stat.name()}"
-                        th:text="${stat.name()}"
-                        th:selected="${stat.name() == lectureFormDto.status}">
-                </option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>강사</label>
-            <select th:field="*{instructorId}">
-                <option value="" disabled th:if="*{instructorId == null}" selected>-- 강사 선택 --</option>
-                <option th:each="inst : ${instructorList}"
-                        th:value="${inst.memberId}"
-                        th:text="${inst.name}"
-                        th:selected="${inst.memberId == lectureFormDto.instructorId}">
-                </option>
-            </select>
-        </div>
+		<div class="form-group">
+ 			<label for="status">상태</label>
+			<select id="status" name="status"
+					th:field="*{status}">
+				<option th:each="st : ${statusList}"
+						th:value="${st}"
+						th:selected="${lectureFormDto.status == st}"
+						th:text="${st}">상태명
+				</option>
+			</select>
+		</div>
+ 		<div class="form-group">
+			<!-- 강사 선택 (admin이면 여러 명, 강사면 본인 1명만) -->
+			<label for="instructor">강사</label>
+			<select name="instructorId" id="instructor" th:disabled="${isInstructor}" required>
+			<option th:each="inst : ${instructorList}"
+					th:value="${inst.memberId}"
+					th:selected="${lectureFormDto.instructorId == inst.memberId}"
+					th:text="${inst.name}">강사명</option>
+			</select>
+	</div>
         <div class="form-group filebox">
             <label>썸네일 이미지 (여러 개 선택 가능)</label>
             <input type="file" name="thumbnailFiles" id="thumbnailFiles" accept="image/*" multiple
