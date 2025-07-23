@@ -100,48 +100,57 @@ public class NoticeController {
     @PostMapping("/save")
     public String save(@ModelAttribute NoticeFormDto noticeFormDto,
                        Principal principal,
-                       Model model) {
+                       RedirectAttributes redirectAttributes) {
         Notice notice;
         String currentUserId = principal.getName();
         Member writer = memberService.findByUserId(currentUserId).orElse(null);
 
         if (writer == null) {
-            throw new IllegalStateException("존재하지 않는 회원입니다.");
+            redirectAttributes.addFlashAttribute("msg", "존재하지 않는 회원입니다.");
+            return "redirect:/notice/form";
         }
 
-        if (noticeFormDto.getNoticeId() != null) {
-            // 수정
-            notice = noticeService.getNotice(noticeFormDto.getNoticeId());
-            if (notice == null) {
-				return "redirect:/notice/list";
-			}
-            // 본인 글만 수정 가능, 작성자 없으면 자동 등록
-            if (notice.getWriter() != null) {
-                if (!notice.getWriter().getUserId().equals(currentUserId)) {
-                    model.addAttribute("msg", "본인 작성글만 수정할 수 있습니다.");
+        boolean isUpdate = noticeFormDto.getNoticeId() != null;
+        try {
+            if (isUpdate) {
+                notice = noticeService.getNotice(noticeFormDto.getNoticeId());
+                if (notice == null) {
+                    redirectAttributes.addFlashAttribute("msg", "존재하지 않는 공지입니다.");
                     return "redirect:/notice/list";
                 }
+                // 본인 글만 수정 가능, 작성자 없으면 자동 등록
+                if (notice.getWriter() != null) {
+                    if (!notice.getWriter().getUserId().equals(currentUserId)) {
+                        redirectAttributes.addFlashAttribute("msg", "본인 작성글만 수정할 수 있습니다.");
+                        return "redirect:/notice/list";
+                    }
+                } else {
+                    notice.setWriter(writer);
+                }
+                notice.setTitle(noticeFormDto.getTitle());
+                notice.setContent(noticeFormDto.getContent());
+                notice.setFixedFlag(Boolean.TRUE.equals(noticeFormDto.getFixedFlag()));
             } else {
-                notice.setWriter(writer);
+                // 신규 등록
+                notice = Notice.builder()
+                        .title(noticeFormDto.getTitle())
+                        .content(noticeFormDto.getContent())
+                        .fixedFlag(Boolean.TRUE.equals(noticeFormDto.getFixedFlag()))
+                        .hit(0)
+                        .writer(writer)
+                        .build();
             }
-            notice.setTitle(noticeFormDto.getTitle());
-            notice.setContent(noticeFormDto.getContent());
-            notice.setFixedFlag(Boolean.TRUE.equals(noticeFormDto.getFixedFlag()));
-        } else {
-            // 신규 등록
-            notice = Notice.builder()
-                    .title(noticeFormDto.getTitle())
-                    .content(noticeFormDto.getContent())
-                    .fixedFlag(Boolean.TRUE.equals(noticeFormDto.getFixedFlag()))
-                    .hit(0)
-                    .writer(writer)
-                    .build();
+            noticeService.saveNotice(notice);
+            redirectAttributes.addFlashAttribute("msg", "공지 " + (isUpdate ? "수정" : "등록") + "이 완료되었습니다.");
+            return "redirect:/notice/list";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("msg", "공지 " + (isUpdate ? "수정" : "등록") + "에 실패하였습니다.");
+            return "redirect:/notice/form";
         }
-        noticeService.saveNotice(notice);
-        return "redirect:/notice/list";
     }
 
     // [관리자/강사만] 삭제
+    @PreAuthorize("hasAnyRole('ADMIN','INSTRUCTOR')")
     @PostMapping("/delete/{id}")
     public String delete(@PathVariable("id") Long id, Principal principal, RedirectAttributes redirectAttributes) {
         if (principal == null) {

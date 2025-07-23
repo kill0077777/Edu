@@ -47,13 +47,6 @@
 <body>
 <div class="form-container" layout:fragment="content">
 
-	<!-- notice/list.html 또는 notice/form.html 상단에 추가 -->
-	<div th:if="${param.msg != null}" style="color:#3b87e5; font-weight:600; margin:10px 0;">
-		<span th:text="${param.msg}"></span>
-	</div>
-	<div th:if="${msg != null}" style="color:#e74c3c; font-weight:600; margin:10px 0;">
-		<span th:text="${msg}"></span>
-	</div>
 
     <h2 th:text="${lectureFormDto.lectureId == null ? '강의 등록' : '강의 수정'}"></h2>
     <form th:action="@{/lecture/save}" th:object="${lectureFormDto}" method="post" enctype="multipart/form-data">
