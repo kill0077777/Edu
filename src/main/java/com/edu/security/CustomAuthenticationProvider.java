@@ -37,10 +37,10 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
 				.orElseThrow(() -> new BadCredentialsException("아이디가 존재하지 않습니다."));
 
 		// === 여기에서 비밀번호 비교 및 로그 찍기! ===
-		System.out.println("=== 여기에서 비밀번호 비교 및 로그 찍기! ===");
-		System.out.println("DB 비번: " + member.getPassword());
-		System.out.println("입력 비번: " + rawPassword);
-		System.out.println("매치결과: " + passwordEncoder.matches(rawPassword, member.getPassword()));
+		//System.out.println("=== 여기에서 비밀번호 비교 및 로그 찍기! ===");
+		//System.out.println("DB 비번: " + member.getPassword());
+		//System.out.println("입력 비번: " + rawPassword);
+		//System.out.println("매치결과: " + passwordEncoder.matches(rawPassword, member.getPassword()));
 
 		if (!passwordEncoder.matches(rawPassword, member.getPassword())) {
 			throw new BadCredentialsException("비밀번호가 일치하지 않습니다.");
@@ -53,7 +53,7 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
 		// 권한 부여
 		// 여기가 핵심!
 		//SimpleGrantedAuthority authority = new SimpleGrantedAuthority(member.getRole()); // String이면 바로
-		
+
 		// 권한 부여
 		// 만약 Enum이라면
 		SimpleGrantedAuthority authority = new SimpleGrantedAuthority(member.getRole().getAuthority());

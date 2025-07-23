@@ -82,7 +82,11 @@ public class ReviewService {
 		        .toList(); // Java 16+ (8 이상이면 .collect(Collectors.toList()))
 	}
 
-	public void delete(Long id) {
-		reviewRepository.deleteById(id);
-	}
+    public void save(Review review) {
+        reviewRepository.save(review);
+    }
+
+    public void delete(Long reviewId) {
+        reviewRepository.deleteById(reviewId);
+    }
 }

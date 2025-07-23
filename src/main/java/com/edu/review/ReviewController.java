@@ -1,5 +1,6 @@
 package com.edu.review;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -7,6 +8,7 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.edu.dto.ReviewDto;
 import com.edu.dto.ReviewFormDto;
@@ -53,7 +56,8 @@ public class ReviewController {
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "10") int size,
             Model model) {
-        Page<Review> reviewPage = reviewService.findByLecturePaged(lectureId, PageRequest.of(page - 1, size));
+
+        Page<Review> reviewPage = reviewService.findByLecturePaged(lectureId, PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "reviewId") ));
         List<ReviewDto> reviewDtoList = reviewPage.stream().map(ReviewDto::fromEntity).collect(Collectors.toList());
         Page<ReviewDto> reviewDtoPage = new PageImpl<>(reviewDtoList, reviewPage.getPageable(), reviewPage.getTotalElements());
         model.addAttribute("reviewPage", reviewDtoPage); // ★이것만 쓰세요!
@@ -68,6 +72,15 @@ public class ReviewController {
         ReviewDto reviewDto = optionalReview.map(ReviewDto::fromEntity).orElse(new ReviewDto());
         model.addAttribute("review", reviewDto);  // Dto만 넘겨!
         return "review/detail";
+    }
+    // 리뷰 수정 폼
+    @GetMapping("/edit/{reviewId}")
+    public String editForm(	@PathVariable("reviewId") Long reviewId,
+    						Model model, Principal principal) {
+        Review review = reviewService.findById(reviewId).orElseThrow(() -> new RuntimeException("리뷰 없음"));
+        // 권한 체크(생략: 필요시 추가)
+        model.addAttribute("review", review);
+        return "review/edit";
     }
 
     // 작성/수정 폼
@@ -93,6 +106,21 @@ public class ReviewController {
         return "review/form";
     }
 
+    // 리뷰 수정
+    @PostMapping("/edit/{reviewId}")
+    public String edit(@PathVariable Long reviewId,
+                       @ModelAttribute Review reviewForm,
+                       Principal principal,
+                       RedirectAttributes redirectAttributes) {
+        Review review = reviewService.findById(reviewId).orElseThrow(() -> new RuntimeException("리뷰 없음"));
+        // 권한 체크(생략: 필요시 추가)
+        review.setContent(reviewForm.getContent());
+        reviewService.save(review);
+
+        redirectAttributes.addFlashAttribute("msg", "리뷰가 수정되었습니다.");
+        return "redirect:/lecture/detail/" + review.getLecture().getLectureId();
+    }
+
     @PostMapping("/save")
     public String saveReview(@ModelAttribute ReviewFormDto reviewFormDto, Model model) {
         Lecture lecture = lectureService.findById(reviewFormDto.getLectureId()).orElse(null);
@@ -112,6 +140,18 @@ public class ReviewController {
         }
         reviewService.saveFromDto(reviewFormDto);
         return "redirect:/review/lecture/" + reviewFormDto.getLectureId() + "/review";
+    }
+
+    // 리뷰 삭제
+    @PostMapping("/delete/{reviewId}")
+    public String delete(@PathVariable Long reviewId, Principal principal, RedirectAttributes redirectAttributes) {
+        Review review = reviewService.findById(reviewId).orElseThrow(() -> new RuntimeException("리뷰 없음"));
+        Long lectureId = review.getLecture().getLectureId();
+        // 권한 체크(생략: 필요시 추가)
+        reviewService.delete(reviewId);
+
+        redirectAttributes.addFlashAttribute("msg", "리뷰가 삭제되었습니다.");
+        return "redirect:/lecture/detail/" + lectureId;
     }
 
     @GetMapping("/delete/{id}")

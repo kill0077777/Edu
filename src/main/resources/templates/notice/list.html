@@ -43,6 +43,7 @@
         <script th:inline="javascript">alert([[${msg}]]);</script>
     </div>
 
+
     <!-- 화면 상단 메시지 박스도 그대로 둬도 됨 -->
     <div th:if="${msg != null}" style="color:#3085ef; background:#f4faff; border:1px solid #b0d7fa; padding:10px 22px; font-size:1.08rem; margin-bottom:19px; border-radius:7px;">
         <span th:text="${msg}"></span>

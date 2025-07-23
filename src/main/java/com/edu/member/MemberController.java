@@ -16,13 +16,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import com.edu.dto.LoginForm;
 import com.edu.dto.MemberFormDto;
 import com.edu.entity.Member;
 import com.edu.entity.Role;
 import com.edu.lecture.LectureService;
 
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -73,13 +74,20 @@ public class MemberController {
 
 	//POST http://localhost:80/member/login
 	@PostMapping("/login")
-	public String loginSubmit(@ModelAttribute LoginForm form) {
-	    // 로그인 처리
-		// 콘솔 로그로 파라미터 확인
-	   // System.out.println("userId = " + userId);
-	    //System.out.println("password = " + password); // 테스트 후 반드시 지우세요! 보안주의
-	    return "redirect:/";
-	}
+    public String login(@RequestParam String userId,
+                        @RequestParam String password,
+                        RedirectAttributes redirectAttributes,
+                        HttpSession session) {
+        Member user = memberService.login(userId, password); // 본인 서비스에 맞게
+        if(user != null) {
+            session.setAttribute("loginUser", user); // 세션에 저장(선택)
+            redirectAttributes.addFlashAttribute("msg", "환영합니다, " + user.getName() + "님!");
+            return "redirect:/"; // 로그인 후 메인으로
+        } else {
+            redirectAttributes.addFlashAttribute("msg", "로그인 실패! 아이디/비밀번호를 확인하세요.");
+            return "redirect:/member/login";
+        }
+    }
 
 	@PostMapping("/register")
 	public String register(@ModelAttribute MemberFormDto memberFormDto) {

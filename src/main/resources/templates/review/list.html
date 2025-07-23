@@ -3,7 +3,6 @@
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout}">
-
 <head>
 <meta charset="UTF-8">
 <title>리뷰 목록</title>
@@ -36,9 +35,9 @@ h2 { color: #38499a; }
 	
 	<a class="btn" th:if="${lectureId != null}" th:href="@{/review/lecture/{lectureId}/review(lectureId=${lectureId})}">목록</a>
 	<a class="btn" th:if="${lectureId == null}" th:href="@{/review/list}">목록</a>
-	
 	<a class="btn" th:if="${lectureId != null}" th:href="@{/review/form(lectureId=${lectureId})}">+ 리뷰 작성</a>
 	<a class="btn" th:if="${lectureId == null}" th:href="@{/review/form}">+ 리뷰 작성</a>
+	
 	<table class="review-table">
 		<thead>
 			<tr>
@@ -54,20 +53,20 @@ h2 { color: #38499a; }
 		<tbody>
 			<tr th:each="review, iter : ${reviewPage.content}">
 				<td th:text="${reviewPage.totalElements - (reviewPage.number * reviewPage.size + iter.index)}">1</td>
-				<td th:text="${review.lectureTitle}">강의명</td>
-				<td th:text="${review.memberName}">작성자</td>
+				<td th:text="${review.lecture != null ? review.lecture.title : 'N/A'}">강의명</td>
+				<td th:text="${review.member != null ? review.member.name : 'N/A'}">작성자</td>
 				<td>
 					<span th:each="i : ${#numbers.sequence(1, 5)}"
-							th:classappend="${review != null and review.rating != null and i <= review.rating} ? 'star-yellow' : 'star-gray'">&#9733;</span>
+						  th:classappend="${review.rating != null and i <= review.rating} ? 'star-yellow' : 'star-gray'">&#9733;</span>
 				</td>
 				<td class="content" th:text="${review.comment}">내용</td>
 				<td th:text="${@dateFormatUtils.format(review.regDate, 'yyyy-MM-dd HH:mm')}"></td>
 				<td>
 					<a class="btn" th:href="@{/review/detail/{id}(id=${review.reviewId})}">상세</a>
 					<a class="btn" th:href="@{/review/edit/{id}(id=${review.reviewId})}">수정</a>
-					<a class="btn" th:href="@{/review/delete/{id}(id=${review.reviewId}, lectureId=${review.lectureId})}"
+					<a class="btn" th:href="@{/review/delete/{id}(id=${review.reviewId}, lectureId=${review.lecture != null ? review.lecture.lectureId : 0})}"
 							onclick="return confirm('삭제하시겠습니까?');">삭제</a>
-					<a class="btn" th:href="@{/review/lecture/{lectureId}/review(lectureId=${review.lectureId})}">목록</a>
+					<a class="btn" th:if="${review.lecture != null}" th:href="@{/review/lecture/{lectureId}/review(lectureId=${review.lecture.lectureId})}">목록</a>
 				</td>
 			</tr>
 			<tr th:if="${reviewPage.content.size() == 0}">
@@ -75,7 +74,6 @@ h2 { color: #38499a; }
 			</tr>
         </tbody>
 	</table>
-
     <!-- 페이징 바 -->
     <div class="paging" th:if="${reviewPage.totalPages > 1}">
         <a th:if="${reviewPage.hasPrevious()}" th:href="@{/review/list(page=${reviewPage.number},size=${reviewPage.size})}">&laquo;</a>

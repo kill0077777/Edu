@@ -123,5 +123,26 @@ public class MemberService {
         return memberRepository.findById(memberId);
     }
 
+ // 로그인 검증 (패스워드는 암호화된 경우 matches로 검증!)
+    public Member login(String userId, String password) {
+        Optional<Member> opt = memberRepository.findByUserId(userId);
+        if(opt.isEmpty()) {
+			return null;
+		}
+        Member member = opt.get();
+        // 패스워드가 암호화(BCrypt 등)라면 ↓ 이런 식으로
+        if (!passwordEncoder.matches(password, member.getPassword())) {
+			return null;
+		}
+
+        // 만약 패스워드가 평문(비추!)이면 그냥 비교
+        if (!member.getPassword().equals(password)) {
+			return null;
+		}
+
+        // 로그인 성공
+        return member;
+    }
+
 
 }

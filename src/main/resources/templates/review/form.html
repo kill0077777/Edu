@@ -53,7 +53,7 @@
     </style>
 </head>
 <body>
-    <div class="review-form" layout:fragment="content">>
+   <div class="review-form" layout:fragment="content">
     <h2 th:text="${reviewFormDto.reviewId == null ? '리뷰 작성' : '리뷰 수정'}"></h2>
     <form th:action="@{/review/save}" th:object="${reviewFormDto}" method="post">
         <input type="hidden" th:field="*{reviewId}" />

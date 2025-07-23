@@ -22,8 +22,8 @@ h2 { color: #38499a; }
 	<div class="container" layout:fragment="content">
 	    <h2>리뷰 상세</h2>
 	    <div class="review-meta">
-	        <b>강의명:</b> <span th:text="${review.lectureTitle}"></span>
-	        <b>작성자:</b> <span th:text="${review.memberName}"></span>
+	        <b>강의명:</b> <span th:text="${review.lecture.title}"></span>
+	        <b>작성자:</b> <span th:text="${review.member.name}"></span>
 	    </div>
 	    <div>
 	        <b>평점:</b>

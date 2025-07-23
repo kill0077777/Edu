@@ -20,6 +20,9 @@ public class SecurityConfig {
 	@Autowired
 	private UserSecurityService userSecurityService;
 
+	@Autowired
+    private CustomLoginSuccessHandler successHandler;
+
 	@Bean
 	public SecurityFilterChain filterChain(
 					HttpSecurity http,

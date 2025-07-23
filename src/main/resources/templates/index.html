@@ -1,13 +1,19 @@
 <!-- src/main/resources/templates/index.html -->
 <html layout:decorate="~{layout}">
-  <div layout:fragment="content" style="text-align:center; padding: 50px 0;">
-    <h1 style="font-size:2.2rem; color:#2a3264;">EduClass 온라인 강의 플랫폼</h1>
-    <p style="font-size:1.1rem; color:#666; margin-bottom:30px;">
-      다양한 강의, Q&A, 리뷰를 경험해보세요.<br/>
-      상단 메뉴에서 원하는 기능을 선택하세요!
-    </p>
+	<div layout:fragment="content" style="text-align:center; padding: 50px 0;">
+		<h1 style="font-size:2.2rem; color:#2a3264;">EduClass 온라인 강의 플랫폼</h1>
+		<p style="font-size:1.1rem; color:#666; margin-bottom:30px;">
+			다양한 강의, Q&A, 리뷰를 경험해보세요.<br/>	
+			상단 메뉴에서 원하는 기능을 선택하세요!
+		</p>
 <!--     <div style="margin-top:30px;"> -->
 <!--       <a class="btn btn-primary" th:href="@{/lecture/list}">강의 목록 바로가기</a> -->
 <!--     </div> -->
-  </div>
+	</div>
+
+<!-- 메시지 표시 -->
+	<div th:if="${msg != null}">
+		<script th:inline="javascript">alert([[${msg}]]);</script>
+	</div>
 </html>
+
