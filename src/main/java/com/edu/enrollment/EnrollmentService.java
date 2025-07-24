@@ -91,5 +91,10 @@ public class EnrollmentService {
     public List<Enrollment> myEnrollments(String loginUserId) {
         return enrollmentRepository.findByMember_UserId(loginUserId);
     }
+
+    // userId가 lectureId에 수강신청했는지 여부
+    public boolean isEnrolled(String userId, Long lectureId) {
+        return enrollmentRepository.existsByUser_UserIdAndLecture_LectureId(userId, lectureId);
+    }
 }
 

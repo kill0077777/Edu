@@ -29,6 +29,10 @@ public class Enrollment {
 	private Member member;
 
 	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "user_id", nullable = false)
+	private Member user;
+
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "lecture_id", nullable = false)
 	private Lecture lecture;
 

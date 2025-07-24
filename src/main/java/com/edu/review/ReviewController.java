@@ -5,18 +5,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.edu.dto.ReviewDto;
@@ -24,6 +16,8 @@ import com.edu.dto.ReviewFormDto;
 import com.edu.entity.Lecture;
 import com.edu.entity.Review;
 import com.edu.lecture.LectureService;
+import com.edu.member.MemberService;
+import com.edu.enrollment.EnrollmentService; // 수강신청 체크
 
 import lombok.RequiredArgsConstructor;
 
@@ -33,134 +27,158 @@ import lombok.RequiredArgsConstructor;
 public class ReviewController {
     private final ReviewService reviewService;
     private final LectureService lectureService;
+    private final MemberService memberService;
+    private final EnrollmentService enrollmentService; // 수강신청 서비스
 
-    // 전체 리뷰 목록 (lectureId 없이)
+    // 전체 리뷰 목록
     @GetMapping("/list")
     public String list(
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "10") int size,
             Model model) {
-    	Page<Review> reviewPage = reviewService.findAll(PageRequest.of(page - 1, size));
-    	List<ReviewDto> reviewDtoList = reviewPage.stream()
-    	        .map(ReviewDto::fromEntity)
-    	        .collect(Collectors.toList());
-    	model.addAttribute("reviewPage", reviewPage);
-    	model.addAttribute("reviewList", reviewDtoList);  // reviewList만 화면에서 반복 돌리기
+        Page<Review> reviewPage = reviewService.findAll(PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "reviewId")));
+        List<ReviewDto> reviewDtoList = reviewPage.stream()
+                .map(ReviewDto::fromEntity)
+                .collect(Collectors.toList());
+        Page<ReviewDto> reviewDtoPage = new PageImpl<>(reviewDtoList, reviewPage.getPageable(), reviewPage.getTotalElements());
+
+        model.addAttribute("reviewPage", reviewDtoPage);
         return "review/list";
     }
 
-    // 강의별 리뷰 목록
+    // 강의별 리뷰 목록 (강의상세 페이지에서 reviewPage 변수만 사용)
     @GetMapping("/lecture/{lectureId}/review")
     public String lectureReviewList(
             @PathVariable("lectureId") Long lectureId,
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "10") int size,
-            Model model) {
+            Model model, Principal principal) {
 
-        Page<Review> reviewPage = reviewService.findByLecturePaged(lectureId, PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "reviewId") ));
+        Page<Review> reviewPage = reviewService.findByLecturePaged(lectureId, PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "reviewId")));
         List<ReviewDto> reviewDtoList = reviewPage.stream().map(ReviewDto::fromEntity).collect(Collectors.toList());
         Page<ReviewDto> reviewDtoPage = new PageImpl<>(reviewDtoList, reviewPage.getPageable(), reviewPage.getTotalElements());
-        model.addAttribute("reviewPage", reviewDtoPage); // ★이것만 쓰세요!
+
+        // 본인이 이 강의를 수강신청했는지 체크
+        boolean canWriteReview = false;
+        String userId = (principal != null) ? principal.getName() : null;
+        if (userId != null) {
+            canWriteReview = enrollmentService.isEnrolled(userId, lectureId);
+        }
+
+        model.addAttribute("reviewPage", reviewDtoPage);
         model.addAttribute("lectureId", lectureId);
+        model.addAttribute("canWriteReview", canWriteReview);
         return "review/list";
     }
 
-    // 상세보기
-    @GetMapping("/detail/{id}")
-    public String detail(@PathVariable("id") Long id, Model model) {
-        Optional<Review> optionalReview = reviewService.findById(id);
-        ReviewDto reviewDto = optionalReview.map(ReviewDto::fromEntity).orElse(new ReviewDto());
-        model.addAttribute("review", reviewDto);  // Dto만 넘겨!
-        return "review/detail";
-    }
-    // 리뷰 수정 폼
-    @GetMapping("/edit/{reviewId}")
-    public String editForm(	@PathVariable("reviewId") Long reviewId,
-    						Model model, Principal principal) {
-        Review review = reviewService.findById(reviewId).orElseThrow(() -> new RuntimeException("리뷰 없음"));
-        // 권한 체크(생략: 필요시 추가)
-        model.addAttribute("review", review);
-        return "review/edit";
-    }
-
-    // 작성/수정 폼
-    @GetMapping({"/form", "/edit/{id}"})
-    public String form(
-            @PathVariable(value = "id", required = false) Long reviewId,
-            @RequestParam(value = "lectureId", required = false) Long lectureId,
-            @RequestParam(value = "userId", required = false) String userId,
-            Model model) {
-        ReviewFormDto reviewFormDto = (reviewId != null) ? reviewService.getFormDto(reviewId) : new ReviewFormDto();
-        if (lectureId != null) {
-			reviewFormDto.setLectureId(lectureId);
-		}
-        if (userId != null) {
-			reviewFormDto.setUserId(userId);
-		}
-
-        List<Lecture> lectureList = lectureService.getLecturesForReview();
-        model.addAttribute("lectureId", lectureId);
-        model.addAttribute("reviewId", reviewId);
+    // 리뷰 등록 폼 (강의상세에서 리뷰 작성버튼 클릭시)
+    @GetMapping("/form")
+    public String form(@RequestParam("lectureId") Long lectureId,
+                       Principal principal,
+                       Model model,
+                       RedirectAttributes redirectAttributes) {
+        String userId = (principal != null) ? principal.getName() : null;
+        if (userId == null || !enrollmentService.isEnrolled(userId, lectureId)) {
+            redirectAttributes.addFlashAttribute("msg", "수강신청한 학생만 리뷰 작성이 가능합니다.");
+            return "redirect:/lecture/detail/" + lectureId;
+        }
+        ReviewFormDto reviewFormDto = new ReviewFormDto();
+        reviewFormDto.setLectureId(lectureId);
+        reviewFormDto.setUserId(userId);
         model.addAttribute("reviewFormDto", reviewFormDto);
-        model.addAttribute("lectureList", lectureList);
         return "review/form";
     }
 
-    // 리뷰 수정
+    // 리뷰 등록 처리
+    @PostMapping("/save")
+    public String saveReview(@ModelAttribute ReviewFormDto reviewFormDto,
+                             Principal principal,
+                             RedirectAttributes redirectAttributes) {
+        String userId = (principal != null) ? principal.getName() : null;
+        Long lectureId = reviewFormDto.getLectureId();
+        if (userId == null || !enrollmentService.isEnrolled(userId, lectureId)) {
+            redirectAttributes.addFlashAttribute("msg", "수강신청한 학생만 리뷰 작성이 가능합니다.");
+            return "redirect:/lecture/detail/" + lectureId;
+        }
+        reviewFormDto.setUserId(userId);
+        reviewService.saveFromDto(reviewFormDto);
+        redirectAttributes.addFlashAttribute("msg", "리뷰가 등록되었습니다.");
+        return "redirect:/lecture/detail/" + lectureId;
+    }
+
+    // 리뷰 수정 폼
+    @GetMapping("/edit/{reviewId}")
+    public String editForm(@PathVariable("reviewId") Long reviewId,
+                           Principal principal,
+                           Model model,
+                           RedirectAttributes redirectAttributes) {
+        Review review = reviewService.findById(reviewId).orElse(null);
+        if (review == null) {
+            redirectAttributes.addFlashAttribute("msg", "존재하지 않는 리뷰입니다.");
+            return "redirect:/lecture/list";
+        }
+        String currentUserId = (principal != null) ? principal.getName() : null;
+        boolean isAdmin = memberService.isAdmin(currentUserId);
+        if (!isAdmin && (review.getMember() == null || !review.getMember().getUserId().equals(currentUserId))) {
+            redirectAttributes.addFlashAttribute("msg", "본인만 수정할 수 있습니다.");
+            return "redirect:/lecture/detail/" + review.getLecture().getLectureId();
+        }
+        model.addAttribute("reviewFormDto", ReviewFormDto.fromEntity(review));
+        return "review/edit";
+    }
+
+    // 리뷰 수정 처리
     @PostMapping("/edit/{reviewId}")
     public String edit(@PathVariable Long reviewId,
-                       @ModelAttribute Review reviewForm,
+                       @ModelAttribute ReviewFormDto reviewFormDto,
                        Principal principal,
                        RedirectAttributes redirectAttributes) {
-        Review review = reviewService.findById(reviewId).orElseThrow(() -> new RuntimeException("리뷰 없음"));
-        // 권한 체크(생략: 필요시 추가)
-        review.setContent(reviewForm.getContent());
+        Review review = reviewService.findById(reviewId).orElse(null);
+        if (review == null) {
+            redirectAttributes.addFlashAttribute("msg", "존재하지 않는 리뷰입니다.");
+            return "redirect:/lecture/list";
+        }
+        String currentUserId = (principal != null) ? principal.getName() : null;
+        boolean isAdmin = memberService.isAdmin(currentUserId);
+        if (!isAdmin && (review.getMember() == null || !review.getMember().getUserId().equals(currentUserId))) {
+            redirectAttributes.addFlashAttribute("msg", "본인만 수정할 수 있습니다.");
+            return "redirect:/lecture/detail/" + review.getLecture().getLectureId();
+        }
+        // 내용 업데이트
+        review.setContent(reviewFormDto.getContent());
+        review.setRating(reviewFormDto.getRating());
         reviewService.save(review);
 
         redirectAttributes.addFlashAttribute("msg", "리뷰가 수정되었습니다.");
         return "redirect:/lecture/detail/" + review.getLecture().getLectureId();
     }
 
-    @PostMapping("/save")
-    public String saveReview(@ModelAttribute ReviewFormDto reviewFormDto, Model model) {
-        Lecture lecture = lectureService.findById(reviewFormDto.getLectureId()).orElse(null);
-        if (lecture == null) {
-            model.addAttribute("error", "해당 강의를 찾을 수 없습니다.");
-            model.addAttribute("reviewFormDto", reviewFormDto);
-            List<Lecture> lectureList = lectureService.getLecturesForReview();
-            model.addAttribute("lectureList", lectureList);
-            return "review/form";
-        }
-        if (!List.of("READY", "CLOSED", "END").contains(lecture.getStatus().name())) {
-            model.addAttribute("error", "이 강의에는 리뷰를 작성할 수 없습니다.");
-            model.addAttribute("reviewFormDto", reviewFormDto);
-            List<Lecture> lectureList = lectureService.getLecturesForReview();
-            model.addAttribute("lectureList", lectureList);
-            return "review/form";
-        }
-        reviewService.saveFromDto(reviewFormDto);
-        return "redirect:/review/lecture/" + reviewFormDto.getLectureId() + "/review";
-    }
-
-    // 리뷰 삭제
+    // 리뷰 삭제 (POST)
     @PostMapping("/delete/{reviewId}")
     public String delete(@PathVariable Long reviewId, Principal principal, RedirectAttributes redirectAttributes) {
-        Review review = reviewService.findById(reviewId).orElseThrow(() -> new RuntimeException("리뷰 없음"));
+        Review review = reviewService.findById(reviewId).orElse(null);
+        if (review == null) {
+            redirectAttributes.addFlashAttribute("msg", "존재하지 않는 리뷰입니다.");
+            return "redirect:/lecture/list";
+        }
+        String currentUserId = (principal != null) ? principal.getName() : null;
+        boolean isAdmin = memberService.isAdmin(currentUserId);
+        if (!isAdmin && (review.getMember() == null || !review.getMember().getUserId().equals(currentUserId))) {
+            redirectAttributes.addFlashAttribute("msg", "본인만 삭제할 수 있습니다.");
+            return "redirect:/lecture/detail/" + review.getLecture().getLectureId();
+        }
         Long lectureId = review.getLecture().getLectureId();
-        // 권한 체크(생략: 필요시 추가)
         reviewService.delete(reviewId);
-
         redirectAttributes.addFlashAttribute("msg", "리뷰가 삭제되었습니다.");
         return "redirect:/lecture/detail/" + lectureId;
     }
 
-    @GetMapping("/delete/{id}")
-    public String delete(@PathVariable Long id, @RequestParam(value = "lectureId", required = false) Long lectureId) {
-        reviewService.delete(id);
-        // 삭제 후 lectureId가 있으면 강의별 리뷰로, 없으면 전체 리뷰로 이동
-        if (lectureId != null) {
-            return "redirect:/review/lecture/" + lectureId + "/review";
-        }
-        return "redirect:/review/list";
+    // 상세보기 (필요시)
+    @GetMapping("/detail/{id}")
+    public String detail(@PathVariable("id") Long id, Model model) {
+        Optional<Review> optionalReview = reviewService.findById(id);
+        ReviewDto reviewDto = optionalReview.map(ReviewDto::fromEntity).orElse(new ReviewDto());
+        model.addAttribute("review", reviewDto);
+        return "review/detail";
     }
 }
