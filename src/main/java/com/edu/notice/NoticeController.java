@@ -40,7 +40,11 @@ public class NoticeController {
     public String list(@RequestParam(value = "page", defaultValue = "0") int page,
                        @RequestParam(value = "size", defaultValue = "10") int size,
                        Model model) {
-        Pageable pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "noticeId") );
+
+    	// page가 0 미만일 경우 0으로 보정
+        if (page < 0) page = 0;
+
+    	Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "noticeId") );
         List<NoticeDto> fixedList = noticeService.getFixedNotices();
         Page<NoticeDto> noticeList = noticeService.getGeneralNotices(pageable);
         model.addAttribute("fixedList", fixedList);
