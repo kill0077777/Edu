@@ -216,63 +216,64 @@ public class LectureController {
 	// 저장 (등록/수정): ADMIN 또는 본인 INSTRUCTOR만 가능 (권장: 추가로 checkEditPermission 호출)
 	@PreAuthorize("hasAnyRole('ADMIN','INSTRUCTOR')")
 	@PostMapping("/save")
-	public String save(@ModelAttribute NoticeFormDto noticeFormDto,
-	                   Principal principal,
-	                   RedirectAttributes redirectAttributes,  // ⭐ 추가!
-	                   Model model) {
-	    Notice notice;
+	public String saveLecture(@ModelAttribute LectureFormDto lectureFormDto,
+	                         Principal principal,
+	                         RedirectAttributes redirectAttributes,
+	                         Model model) {
 	    String currentUserId = principal.getName();
 	    Member writer = memberService.findByUserId(currentUserId).orElse(null);
 
 	    if (writer == null) {
 	        model.addAttribute("msg", "존재하지 않는 회원입니다.");
-	        return "notice/form";
+	        return "lecture/form";
 	    }
 
-	    boolean isUpdate = noticeFormDto.getNoticeId() != null;
+	    boolean isUpdate = lectureFormDto.getLectureId() != null;
 	    try {
+	        Lecture lecture;
 	        if (isUpdate) {
-	            notice = noticeService.getNotice(noticeFormDto.getNoticeId());
-	            if (notice == null) {
-	                model.addAttribute("msg", "존재하지 않는 공지입니다.");
-	                return "notice/form";
+	            lecture = lectureService.findById(lectureFormDto.getLectureId()).orElse(null);
+	            if (lecture == null) {
+	                model.addAttribute("msg", "존재하지 않는 강의입니다.");
+	                return "lecture/form";
 	            }
-	            // 본인 글만 수정 가능, 작성자 없으면 자동 등록
-	            if (notice.getWriter() != null) {
-	                if (!notice.getWriter().getUserId().equals(currentUserId)) {
-	                    model.addAttribute("msg", "본인 작성글만 수정할 수 있습니다.");
-	                    return "notice/form";
+	            // 권한 체크 (본인/관리자)
+	            if (lecture.getInstructor() != null) {
+	                if (!lecture.getInstructor().getUserId().equals(currentUserId) && !writer.getRole().equals("ADMIN")) {
+	                    model.addAttribute("msg", "본인 또는 관리지만 수정할 수 있습니다.");
+	                    return "lecture/form";
 	                }
 	            } else {
-	                notice.setWriter(writer);
+	                lecture.setInstructor(writer);
 	            }
-	            notice.setTitle(noticeFormDto.getTitle());
-	            notice.setContent(noticeFormDto.getContent());
-	            notice.setFixedFlag(Boolean.TRUE.equals(noticeFormDto.getFixedFlag()));
+	            lecture.setTitle(lectureFormDto.getTitle());
+	            lecture.setDescription(lectureFormDto.getDescription());
+	            lecture.setCategory(lectureFormDto.getCategory());
+	            lecture.setPrice(lectureFormDto.getPrice());
+	            // ⭐⭐⭐ status 값 변환 (String → Enum)
+	            if (lectureFormDto.getStatus() != null) {
+	                lecture.setStatus(LectureStatus.valueOf(lectureFormDto.getStatus()));
+	            }
 	        } else {
-	            // 신규 등록
-	            notice = Notice.builder()
-	                    .title(noticeFormDto.getTitle())
-	                    .content(noticeFormDto.getContent())
-	                    .fixedFlag(Boolean.TRUE.equals(noticeFormDto.getFixedFlag()))
-	                    .hit(0)
-	                    .writer(writer)
+	            lecture = Lecture.builder()
+	                    .title(lectureFormDto.getTitle())
+	                    .description(lectureFormDto.getDescription())
+	                    .category(lectureFormDto.getCategory())
+	                    .price(lectureFormDto.getPrice())
+	                    // ⭐⭐⭐ status 값 변환 (String → Enum)
+	                    .status(LectureStatus.valueOf(lectureFormDto.getStatus()))
+	                    .instructor(writer)
 	                    .build();
 	        }
-	        noticeService.saveNotice(notice);
+	        lectureService.save(lecture);
 
-	        // 🔥 Flash Attribute로 메시지 전달
-	        redirectAttributes.addFlashAttribute("msg", "공지 " + (isUpdate ? "수정" : "등록") + "이 완료되었습니다.");
-
-	        return "redirect:/notice/list";
+	        redirectAttributes.addFlashAttribute("msg", "강의 " + (isUpdate ? "수정" : "등록") + "이 완료되었습니다.");
+	        return "redirect:/lecture/list";
 	    } catch (Exception e) {
-	        model.addAttribute("msg", "공지 " + (isUpdate ? "수정" : "등록") + "에 실패하였습니다.");
-	        return "notice/form";
+	        model.addAttribute("msg", "강의 " + (isUpdate ? "수정" : "등록") + "에 실패하였습니다.");
+	        return "lecture/form";
 	    }
 	}
-
-
-
 
 
 	// [관리자/강사만] 공지 삭제
