@@ -157,12 +157,19 @@
 
     <!-- 버튼 영역 -->
 	<div class="btns">
-	    <!-- 결제 버튼 (로그인 & 미결제 & 가격 > 0) -->
-	    <form th:if="${lecture.price > 0 and not isPaid}" th:action="@{/lecture/pay/{id}(id=${lecture.lectureId})}" method="post" style="display:inline;">
-	        <button type="submit" class="btn btn-primary">결제하고 수강신청</button>
-	    </form>
-	    <span th:if="${isPaid}" style="color:#2b3777;font-weight:700;">결제 완료! 수강중입니다.</span>
-	    <span th:if="${lecture.price == 0}" style="color:#2b3777;font-weight:700;">무료 강의</span>    
+		<!-- 결제 버튼: 미결제, 가격>0, 상태가 'OPEN'인 경우만 노출 -->
+		<form th:if="${lecture.price > 0 and not isPaid and lectureStatus == 'OPEN'}" 
+		      th:action="@{/lecture/pay/{id}(id=${lecture.lectureId})}" method="post" style="display:inline;">
+		    <button type="submit" class="btn btn-primary">결제하고 수강신청</button>
+		</form>
+
+		<!-- 수강중, 수강완료, 종료 메시지 -->
+		<span th:if="${isPaid and (lectureStatus == 'READY')}" style="color:#2b3777;font-weight:700;">결제 완료! 수강중입니다.</span>
+		<span th:if="${isPaid and (lectureStatus == 'CLOSED')}" style="color:#29a033;font-weight:700;">수강 완료</span>
+		<span th:if="${isPaid and (lectureStatus == 'END')}" style="color:#e74c3c;font-weight:700;">강의 종료</span>
+
+		<!-- 무료 강의 메시지 -->
+		<span th:if="${lecture.price == 0}" style="color:#2b3777;font-weight:700;">무료 강의</span>    
 	
 	    <!-- 관리자용 리뷰 작성 버튼 (항상) -->
 	    <a th:if="${#authorization.expression('hasRole(''ADMIN'')')}"
