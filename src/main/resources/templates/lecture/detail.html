@@ -32,10 +32,25 @@
 </head>
 <body>
 <div class="card-box" layout:fragment="content">
-    <!-- 메시지 박스 (한 번만) -->
+ 	<!-- 메시지 표시 -->
+    <div th:if="${msg != null}">
+        <script th:inline="javascript">alert([[${msg}]]);</script>
+    </div>
+     <!-- 화면 상단 메시지 박스도 그대로 둬도 됨 -->
     <div th:if="${msg != null}" style="color:#3085ef; background:#f4faff; border:1px solid #b0d7fa; padding:10px 22px; font-size:1.08rem; margin-bottom:19px; border-radius:7px;">
         <span th:text="${msg}"></span>
     </div>
+
+    <!-- notice/list.html 또는 notice/form.html 상단에 추가 -->
+	<!-- 
+	<div th:if="${param.msg != null}" style="color:#3b87e5; font-weight:600; margin:10px 0;">
+		<span th:text="${param.msg}"></span>
+	</div>
+	<div th:if="${msg != null}" style="color:#e74c3c; font-weight:600; margin:10px 0;">
+		<span th:text="${msg}"></span>
+	</div>
+	-->
+
 
     <h2 th:text="${lecture.title}">강의명</h2>
     <div class="lecture-info">
@@ -46,14 +61,14 @@
             <b th:if="${lecture.price == 0}">무료</b>
             <b th:unless="${lecture.price == 0}" th:text="${lecture.price + '원'}"></b>
         </span>
-        <span>상태: 
-            <span th:switch="${lecture.status}">
-                <span th:case="'OPEN'" class="badge badge-open">OPEN</span>
-                <span th:case="'READY'" class="badge badge-other">READY</span>
-                <span th:case="'CLOSED'" class="badge badge-closed">CLOSED</span>
-                <span th:case="*" class="badge badge-other" th:text="${lectureStatus}"></span>
-            </span>
+        <span>
+            상태:
+            <span th:if="${lectureStatus == 'OPEN'}" style="color:#3685fe; font-weight:700;">강의 오픈(수강신청 가능)</span>
+            <span th:if="${lectureStatus == 'READY'}" style="color:#3085ef; font-weight:700;">수강중</span>
+            <span th:if="${lectureStatus == 'CLOSED'}" style="color:#29a033; font-weight:700;">수강완료</span>
+            <span th:if="${lectureStatus == 'END'}" style="color:#e74c3c; font-weight:700;">강의종료</span>
         </span>
+        <span th:if="${progress != null}">진행률: <b th:text="${progress + '%'}"></b></span>
         <span>등록일: <b th:text="${@dateFormatUtils.format(lecture.regDate, 'yyyy-MM-dd HH:mm')}"></b></span>
     </div>
 
@@ -141,31 +156,31 @@
     </ul>
 
     <!-- 버튼 영역 -->
-    <div class="btns">
-        <!-- 결제 버튼 (로그인 & 미결제 & 가격 > 0) -->
-        <form th:if="${lecture.price > 0 and not isPaid}" th:action="@{/lecture/pay/{id}(id=${lecture.lectureId})}" method="post" style="display:inline;">
-            <button type="submit" class="btn btn-primary">결제하고 수강신청</button>
-        </form>
-        <span th:if="${isPaid}" style="color:#2b3777;font-weight:700;">결제 완료! 수강중입니다.</span>
-        <span th:if="${lecture.price == 0}" style="color:#2b3777;font-weight:700;">무료 강의</span>    
-
-        <!-- 관리자용 리뷰 작성 버튼 (항상) -->
-        <a th:if="${#authorization.expression('hasRole(''ADMIN'')')}"
-           th:href="@{/review/form(lectureId=${lecture.lectureId})}">리뷰 작성</a>
-        <!-- 학생/수강생 리뷰 작성 (수강, 조건, 강의상태 모두 만족시) -->
-        <a th:if="${canWriteReview and #lists.contains({'OPEN','READY','CLOSED','END'}, lecture.status.name()) and !#authorization.expression('hasRole(''ADMIN'')')}"
-           th:href="@{/review/form(lectureId=${lecture.lectureId})}">리뷰 작성</a>
-        <!-- 질문 작성 버튼 -->
-        <a th:if="${#lists.contains({'OPEN','READY','CLOSED','END'}, lecture.status.name())}"
-           th:href="@{/question/form(lectureId=${lecture.lectureId})}">질문 작성</a>
-        <!-- 강의 수정/삭제: 관리자/강사 -->
-        <a th:if="${canEdit}" th:href="@{/lecture/form(id=${lecture.lectureId})}">강의 수정</a>
-        <form th:if="${canEdit}" th:action="@{/lecture/delete/{id}(id=${lecture.lectureId})}" method="post" style="display:inline;">
-            <button type="submit" onclick="return confirm('정말 삭제하시겠습니까?');">강의 삭제</button>
-        </form>
-        <!-- 목록 버튼 -->
-        <a class="btn" th:href="@{/lecture/list}">목록</a>
-    </div>
+	<div class="btns">
+	    <!-- 결제 버튼 (로그인 & 미결제 & 가격 > 0) -->
+	    <form th:if="${lecture.price > 0 and not isPaid}" th:action="@{/lecture/pay/{id}(id=${lecture.lectureId})}" method="post" style="display:inline;">
+	        <button type="submit" class="btn btn-primary">결제하고 수강신청</button>
+	    </form>
+	    <span th:if="${isPaid}" style="color:#2b3777;font-weight:700;">결제 완료! 수강중입니다.</span>
+	    <span th:if="${lecture.price == 0}" style="color:#2b3777;font-weight:700;">무료 강의</span>    
+	
+	    <!-- 관리자용 리뷰 작성 버튼 (항상) -->
+	    <a th:if="${#authorization.expression('hasRole(''ADMIN'')')}"
+	       th:href="@{/review/form(lectureId=${lecture.lectureId})}">리뷰 작성</a>
+	    <!-- 학생/수강생 리뷰 작성 (수강, 조건, 강의상태 모두 만족시) -->
+	    <a th:if="${canWriteReview and #lists.contains({'OPEN','READY','CLOSED','END'}, lecture.status.name()) and !#authorization.expression('hasRole(''ADMIN'')')}"
+	       th:href="@{/review/form(lectureId=${lecture.lectureId})}">리뷰 작성</a>
+	    <!-- 질문 작성 버튼 -->
+	    <a th:if="${#lists.contains({'OPEN','READY','CLOSED','END'}, lecture.status.name())}"
+	       th:href="@{/question/form(lectureId=${lecture.lectureId})}">질문 작성</a>
+	    <!-- 강의 수정/삭제: 관리자/강사 -->
+	    <a th:if="${canEdit}" th:href="@{/lecture/form(id=${lecture.lectureId})}">강의 수정</a>
+	    <form th:if="${canEdit}" th:action="@{/lecture/delete/{id}(id=${lecture.lectureId})}" method="post" style="display:inline;">
+	        <button type="submit" onclick="return confirm('정말 삭제하시겠습니까?');">강의 삭제</button>
+	    </form>
+	    <!-- 목록 버튼 -->
+	    <a class="btn" th:href="@{/lecture/list}">목록</a>
+	</div>
 </div>
 </body>
 </html>

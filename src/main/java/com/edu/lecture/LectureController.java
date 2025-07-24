@@ -119,81 +119,68 @@ public class LectureController {
 	//http://localhost/lecture/detail/1
 	// 강의상세 Controller
 	//@GetMapping({"/detail/{id}", "/{lectureId}/review"})
-    @GetMapping("/detail/{lectureId}")
-    public String detail(@PathVariable("lectureId") Long lectureId,
-                         @RequestParam(value = "page", defaultValue = "1") int page,
-                         @RequestParam(value = "size", defaultValue = "10") int size,
-                         @AuthenticationPrincipal MemberUserDetails userDetails,
-                         Model model) {
+	@GetMapping("/detail/{lectureId}")
+	public String detail(@PathVariable("lectureId") Long lectureId,
+	                     @RequestParam(value = "page", defaultValue = "1") int page,
+	                     @RequestParam(value = "size", defaultValue = "10") int size,
+	                     @AuthenticationPrincipal MemberUserDetails userDetails,
+	                     Model model) {
 
-        // (1) 강의/리뷰/질문 페이징 데이터 조회
-        Lecture lecture = lectureService.findById(lectureId).orElseThrow();
-        Page<Question> questionPage = questionService.findByLecturePaged(lectureId, PageRequest.of(page - 1, size));
-        List<QuestionDto> questionDtoList = questionPage.stream().map(QuestionDto::fromEntity).toList();
-        Page<QuestionDto> questionDtoPage = new PageImpl<>(questionDtoList, questionPage.getPageable(), questionPage.getTotalElements());
+	    Lecture lecture = lectureService.findById(lectureId).orElseThrow();
 
-        Page<Review> reviewPage = reviewService.findByLecturePaged(lectureId, PageRequest.of(page - 1, size));
-        List<ReviewDto> reviewDtoList = reviewPage.stream().map(ReviewDto::fromEntity).toList();
-        Page<ReviewDto> reviewDtoPage = new PageImpl<>(reviewDtoList, reviewPage.getPageable(), reviewPage.getTotalElements());
+	    // QnA/리뷰 등 페이징
+	    Page<Question> questionPage = questionService.findByLecturePaged(lectureId, PageRequest.of(page - 1, size));
+	    List<QuestionDto> questionDtoList = questionPage.stream().map(QuestionDto::fromEntity).toList();
+	    Page<QuestionDto> questionDtoPage = new PageImpl<>(questionDtoList, questionPage.getPageable(), questionPage.getTotalElements());
+	    Page<Review> reviewPage = reviewService.findByLecturePaged(lectureId, PageRequest.of(page - 1, size));
+	    List<ReviewDto> reviewDtoList = reviewPage.stream().map(ReviewDto::fromEntity).toList();
+	    Page<ReviewDto> reviewDtoPage = new PageImpl<>(reviewDtoList, reviewPage.getPageable(), reviewPage.getTotalElements());
 
-        // (2) 로그인/결제/수강신청 상태 계산
-        String loginUserId = (userDetails != null) ? userDetails.getUserId() : null;
-        boolean canEdit = false;
-        boolean canWriteReview = false;
-        boolean isPaid = false;
-        String lectureStatus = "OPEN";
+	    // --- 상태 및 진행률 계산 ---
+	    String lectureStatus = lecture.getStatus().name();
+	    int progress = 0;
+	    if (userDetails != null) {
+	        Optional<Enrollment> enrollmentOpt = enrollmentService.getEnrollment(lectureId, userDetails.getUserId());
+	        if (enrollmentOpt.isPresent()) {
+	            progress = enrollmentOpt.get().getProgress();
+	            if (lecture.getStatus() == LectureStatus.END) {
+	                lectureStatus = "END";
+	            } else if (progress >= 100) {
+	                lectureStatus = "CLOSED";
+	            } else if (progress > 0) {
+	                lectureStatus = "READY";
+	            } else {
+	                lectureStatus = "READY";
+	            }
+	        }
+	    } else if (lecture.getStatus() == LectureStatus.END) {
+	        lectureStatus = "END";
+	    }
 
-        if (loginUserId != null) {
-            Member member = memberService.findByUserId(loginUserId).orElse(null);
+	    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+	    String loginUserId = (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) ? auth.getName() : null;
 
-            // 관리자 또는 강사 여부
-            boolean isInstructor = (lecture.getInstructor() != null && loginUserId.equals(lecture.getInstructor().getUserId()));
-            boolean isAdmin = memberService.isAdmin(loginUserId);
-            canEdit = isInstructor || isAdmin;
+	    boolean canEdit = false;
+	    if (loginUserId != null) {
+	        boolean isInstructor = lecture.getInstructor() != null && loginUserId.equals(lecture.getInstructor().getUserId());
+	        boolean isAdmin = memberService.isAdmin(loginUserId);
+	        canEdit = isInstructor || isAdmin;
+	    }
 
-            // 결제(수강신청) 여부: orderService 사용, 없으면 enrollmentService로 체크해도 OK
-            isPaid = orderService.isLecturePaid(member, lecture); // 또는 enrollmentService.isEnrolled(loginUserId, lectureId);
+	    boolean canWriteReview = (loginUserId != null) && lectureService.isLectureStudent(lectureId, loginUserId);
+	    boolean isPaid = (loginUserId != null) && orderService.isLecturePaid(memberService.findByUserId(loginUserId).orElse(null), lecture);
 
-            // 리뷰작성 가능: 결제(수강신청)자만
-            canWriteReview = isPaid;
+	    model.addAttribute("lecture", lecture);
+	    model.addAttribute("lectureStatus", lectureStatus);
+	    model.addAttribute("progress", progress);
+	    model.addAttribute("questionPage", questionDtoPage);
+	    model.addAttribute("reviewPage", reviewDtoPage);
+	    model.addAttribute("canEdit", canEdit); // primitive boolean!
+	    model.addAttribute("canWriteReview", canWriteReview);
+	    model.addAttribute("isPaid", isPaid);
 
-            // 강의상태: 결제완료면 READY, 결제안했으면 OPEN
-            lectureStatus = isPaid ? "READY" : "OPEN";
-        }
-
-        // (3) 뷰 모델에 데이터 전달
-        model.addAttribute("lecture", lecture);
-        model.addAttribute("lectureStatus", lectureStatus);
-        model.addAttribute("questionPage", questionDtoPage);
-        model.addAttribute("reviewPage", reviewDtoPage);
-
-        // 아래 3줄! null 안전하게, boolean 기본값 활용
-        model.addAttribute("canEdit", canEdit);
-        model.addAttribute("canWriteReview", canWriteReview);
-        model.addAttribute("isPaid", isPaid);
-        
-        
-
-        return "lecture/detail";
+	    return "lecture/detail";
 	}
-    
-	 // 결제(수강신청)
-    @PostMapping("/pay/{lectureId}")
-    public String payLecture(@PathVariable("lectureId") Long lectureId, Principal principal, RedirectAttributes redirectAttributes) {
-        if (principal == null) {
-            redirectAttributes.addFlashAttribute("msg", "로그인이 필요합니다.");
-            return "redirect:/member/login";
-        }
-        Member member = memberService.findByUserId(principal.getName()).orElse(null);
-        Lecture lecture = lectureService.findById(lectureId).orElse(null);
-        try {
-            orderService.createOrder(member, lecture);
-            redirectAttributes.addFlashAttribute("msg", "결제 완료! 수강신청 되었습니다.");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("msg", e.getMessage());
-        }
-        return "redirect:/lecture/detail/" + lectureId;
-    }
 
 
 	// [관리자/강사만] 강의 등록/수정 폼
