@@ -2,6 +2,7 @@ package com.edu.entity;
 
 import java.time.LocalDateTime;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -21,36 +22,32 @@ import lombok.Setter;
 @Table(name = "enrollment")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Enrollment {
-	@Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long enrollmentId;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "enrollment_id") // <- 꼭 명시!
+    private Long id;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "member_id", nullable = false)
-	private Member member;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_id")
+    private Member member;
 
-	//@ManyToOne(fetch = FetchType.LAZY)
-	//@JoinColumn(name = "user_id", nullable = false)
-	//private Member user;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lecture_id")
+    private Lecture lecture;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "lecture_id", nullable = false)
-	private Lecture lecture;
+    private Boolean completedFlag; // ★ 완료여부 추가! (nullable=true도 무방)
+    private boolean paid; // 결제여부 (무료일때도 true로 처리)
+    private int progress; // 0~100
+    private LocalDateTime enrollDate;
 
-	private LocalDateTime enrolledAt;
+    @Column(length = 20)
+    private String status; // "READY"(수강중), "CLOSED"(완료), "END"(강의종료)
 
-	private Integer progress; // 0~100
-	private Boolean completedFlag; // true: 완료
-
-	@PrePersist
-	public void prePersist() {
-		if (enrolledAt == null) {
-			enrolledAt = LocalDateTime.now();
-		}
-		if (progress == null) {
-			progress = 0;
-		}
-		if (completedFlag == null) {
-			completedFlag = false;
-		}
-	}
+    // 상태 계산 예시: setStatus에 따라 자동 설정 가능
+    public void updateStatusByProgress() {
+        if (progress >= 100) this.status = "CLOSED";
+        else if (progress > 0) this.status = "READY";
+        else this.status = "READY";
+    }
 }
+

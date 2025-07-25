@@ -65,6 +65,7 @@ public class LectureController {
 	private final EnrollmentService enrollmentService;
 	private final NoticeService noticeService;
 	private final OrderService orderService;
+	//private final LectureStatus lectureStatus;
 
 	// 파일 저장 메서드 (Controller 내부에 둘 수도 있고, 별도 Service로 분리도 가능)
 	private static final String UPLOAD_DIR = "/uploads/lecture/";
@@ -127,8 +128,6 @@ public class LectureController {
 	                     Model model) {
 
 	    Lecture lecture = lectureService.findById(lectureId).orElseThrow();
-
-	    // QnA/리뷰 등 페이징
 	    Page<Question> questionPage = questionService.findByLecturePaged(lectureId, PageRequest.of(page - 1, size));
 	    List<QuestionDto> questionDtoList = questionPage.stream().map(QuestionDto::fromEntity).toList();
 	    Page<QuestionDto> questionDtoPage = new PageImpl<>(questionDtoList, questionPage.getPageable(), questionPage.getTotalElements());
@@ -136,14 +135,18 @@ public class LectureController {
 	    List<ReviewDto> reviewDtoList = reviewPage.stream().map(ReviewDto::fromEntity).toList();
 	    Page<ReviewDto> reviewDtoPage = new PageImpl<>(reviewDtoList, reviewPage.getPageable(), reviewPage.getTotalElements());
 
-	    // --- 상태 및 진행률 계산 ---
-	    String lectureStatus = lecture.getStatus().name();
+	    String loginUserId = (userDetails != null) ? userDetails.getUserId() : null;
+	    boolean isPaid = false;
 	    int progress = 0;
-	    if (userDetails != null) {
-	        Optional<Enrollment> enrollmentOpt = enrollmentService.getEnrollment(lectureId, userDetails.getUserId());
+	    String lectureStatus = lecture.getStatus().name();
+
+	    if (loginUserId != null) {
+	        Optional<Enrollment> enrollmentOpt = enrollmentService.getEnrollment(lectureId, loginUserId);
 	        if (enrollmentOpt.isPresent()) {
-	            progress = enrollmentOpt.get().getProgress();
-	            if (lecture.getStatus() == LectureStatus.END) {
+	            Enrollment enrollment = enrollmentOpt.get();
+	            isPaid = enrollment.isPaid();
+	            progress = enrollment.getProgress();
+	            if ("END".equals(lecture.getStatus().name())) {
 	                lectureStatus = "END";
 	            } else if (progress >= 100) {
 	                lectureStatus = "CLOSED";
@@ -153,12 +156,9 @@ public class LectureController {
 	                lectureStatus = "READY";
 	            }
 	        }
-	    } else if (lecture.getStatus() == LectureStatus.END) {
+	    } else if ("END".equals(lecture.getStatus().name())) {
 	        lectureStatus = "END";
 	    }
-
-	    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-	    String loginUserId = (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) ? auth.getName() : null;
 
 	    boolean canEdit = false;
 	    if (loginUserId != null) {
@@ -168,20 +168,39 @@ public class LectureController {
 	    }
 
 	    boolean canWriteReview = (loginUserId != null) && lectureService.isLectureStudent(lectureId, loginUserId);
-	    boolean isPaid = (loginUserId != null) && orderService.isLecturePaid(memberService.findByUserId(loginUserId).orElse(null), lecture);
 
 	    model.addAttribute("lecture", lecture);
 	    model.addAttribute("lectureStatus", lectureStatus);
 	    model.addAttribute("progress", progress);
 	    model.addAttribute("questionPage", questionDtoPage);
 	    model.addAttribute("reviewPage", reviewDtoPage);
-	    model.addAttribute("canEdit", canEdit); // primitive boolean!
+	    model.addAttribute("canEdit", canEdit);
 	    model.addAttribute("canWriteReview", canWriteReview);
 	    model.addAttribute("isPaid", isPaid);
 
 	    return "lecture/detail";
 	}
 
+
+	 // 무료강의 수강신청(수강하기 버튼)
+    @PostMapping("/free-enroll/{lectureId}")
+    public String freeEnroll(@PathVariable("lectureId") Long lectureId,
+                             Principal principal,
+                             RedirectAttributes redirectAttributes) {
+        if (principal == null) {
+            redirectAttributes.addFlashAttribute("msg", "로그인 후 이용해주세요.");
+            return "redirect:/member/login";
+        }
+        String userId = principal.getName();
+        boolean enrolled = enrollmentService.enrollFreeLecture(userId, lectureId); // 아래 서비스 참고
+        if (enrolled) {
+            redirectAttributes.addFlashAttribute("msg", "수강신청 완료! 수강중입니다.");
+        } else {
+            redirectAttributes.addFlashAttribute("msg", "이미 수강중이거나 오류가 발생했습니다.");
+        }
+        return "redirect:/lecture/detail/" + lectureId;
+    }
+	
 
 	// [관리자/강사만] 강의 등록/수정 폼
 	// 수정 폼: ADMIN 또는 본인 INSTRUCTOR만 접근
@@ -219,6 +238,8 @@ public class LectureController {
 
 	    return "lecture/form";
 	}
+
+	
 
 	// [관리자/강사만] 강의 저장
 	// 저장 (등록/수정): ADMIN 또는 본인 INSTRUCTOR만 가능 (권장: 추가로 checkEditPermission 호출)

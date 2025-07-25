@@ -1,5 +1,6 @@
 package com.edu.enrollment;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -11,6 +12,7 @@ import com.edu.entity.Member;
 import com.edu.lecture.LectureRepository;
 import com.edu.member.MemberRepository;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -96,5 +98,35 @@ public class EnrollmentService {
     	// userId가 lectureId에 수강신청했는지 여부
         return enrollmentRepository.existsByMember_UserIdAndLecture_LectureId(userId, lectureId);
     }
+
+    @Transactional
+    public boolean enrollFreeLecture(String userId, Long lectureId) {
+        // 1. 이미 수강신청 했는지 확인
+        Optional<Enrollment> exists = enrollmentRepository.findByMember_UserIdAndLecture_LectureId(userId, lectureId);
+        if (exists.isPresent()) {
+            // 이미 수강중(중복방지)
+            return false;
+        }
+
+        // 2. 회원, 강의 엔티티 찾기
+        Member member = memberRepository.findByUserId(userId).orElse(null);
+        Lecture lecture = lectureRepository.findById(lectureId).orElse(null);
+        if (member == null || lecture == null) {
+            return false;
+        }
+
+        // 3. Enrollment 생성 및 저장 (진행률 0, 무료이므로 결제 필요없음)
+        Enrollment enrollment = Enrollment.builder()
+                .member(member)
+                .lecture(lecture)
+                .progress(0) // 처음은 0 (수강시작)
+                .paid(true)  // 무료강의도 '수강신청'시 바로 true로 처리
+                .enrollDate(LocalDateTime.now())
+                .build();
+        enrollmentRepository.save(enrollment);
+
+        return true;
+    }
+
 }
 
